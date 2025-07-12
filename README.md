@@ -13,7 +13,7 @@ The goal is to create a SkillSwap platform where users can:
 
 ## Team Members :- 
 - Bhoomi Agarwal (bhoomi.agarwal.ug23@nsut.ac.in)
-- Vijwal Manocha (vijwal.manocha.ug23@nsut.ac.in)
 - Eugene Samuel (eugene.samuel.ug23@nsut.ac.in)
 - Khushi Gupta (khushi.gupta.ug23@nsut.ac.in)
+- Vijwal Manocha (vijwal.manocha.ug23@nsut.ac.in)
 
