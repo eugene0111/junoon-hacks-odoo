@@ -1,71 +1,95 @@
 import sys
+import os
 import logging
-from sentence_transformers import SentenceTransformer, util
+import requests
+from dotenv import load_dotenv
 import database as db
 
 # --- Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-model = SentenceTransformer('all-MiniLM-L6-v2')
-logging.info("AI model loaded successfully.")
+load_dotenv()
 
-def generate_all_public_user_vectors(all_public_users):
-    """Pre-computes and returns a dictionary of all public users and their skill vectors."""
-    logging.info("Generating skill vectors for all public users...")
-    user_vectors_map = {}
-    for user in all_public_users:
-        user_id_str = str(user['_id'])
-        offered_text = ", ".join(user.get('skillsOffered', []))
-        wanted_text = ", ".join(user.get('skillsWanted', []))
-        
-        user_vectors_map[user_id_str] = {
-            'offered_vector': model.encode(offered_text),
-            'wanted_vector': model.encode(wanted_text)
-        }
-    logging.info("All public skill vectors generated.")
-    return user_vectors_map
+MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
+HF_API_KEY = os.getenv("HF_TOKEN")
+if not HF_API_KEY:
+    raise Exception("Hugging Face API Key not found in .env file.")
 
-def find_and_save_matches_for_user(target_user_id, all_user_vectors):
-    """Finds and saves the best skill-swap matches for a SINGLE user."""
-    logging.info(f"Finding matches for user: {target_user_id}...")
-    target_user_data = all_user_vectors.get(target_user_id)
-    if not target_user_data:
-        logging.error(f"Could not find vector data for user {target_user_id}. Is their profile public?")
+API_URL = f"https://router.huggingface.co/hf-inference/models/{MODEL_ID}/pipeline/sentence-similarity"
+headers = {
+    "Authorization": f"Bearer {HF_API_KEY}",
+}
+
+
+def get_similarity_scores(source_sentence, sentences_to_compare):
+    """Calls Hugging Face sentence-similarity pipeline and returns similarity scores."""
+    try:
+        logging.info(f"Calling Hugging Face sentence-similarity API for {len(sentences_to_compare)} comparisons...")
+        response = requests.post(
+            API_URL,
+            headers=headers,
+            json={
+                "inputs": {
+                    "source_sentence": source_sentence,
+                    "sentences": sentences_to_compare
+                },
+                "options": {
+                    "wait_for_model": True
+                }
+            }
+        )
+        response.raise_for_status()
+        return response.json()  # Should return a list of similarity scores
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error calling Hugging Face API: {e}")
+        return None
+
+
+def find_and_save_matches_for_user(target_user, all_public_users):
+    """Finds and saves matches for a single user using Hugging Face sentence-similarity API."""
+    logging.info(f"--- Finding matches for user: {target_user['_id']} ---")
+
+    target_wanted_text = ", ".join(target_user.get('skillsWanted', []) or ["nothing"])
+
+    # Exclude self from comparison
+    other_users = [user for user in all_public_users if str(user['_id']) != str(target_user['_id'])]
+    offered_texts = [", ".join(user.get('skillsOffered', []) or ["nothing"]) for user in other_users]
+
+    if not offered_texts:
+        logging.warning("No other users to compare against. Skipping.")
         return
 
-    my_wanted_vector = target_user_data['wanted_vector']
-    
+    scores = get_similarity_scores(target_wanted_text, offered_texts)
+    if not scores or not isinstance(scores, list) or len(scores) != len(offered_texts):
+        logging.error("Failed to get valid similarity scores from API. Aborting matchmaking for this user.")
+        return
+
     potential_matches = []
-    for other_user_id, other_user_data in all_user_vectors.items():
-        if target_user_id == other_user_id:
-            continue
-        their_offered_vector = other_user_data['offered_vector']
-        score = util.cos_sim(my_wanted_vector, their_offered_vector).item()
-        potential_matches.append({'userId': other_user_id, 'score': score})
-        
+    for i, user in enumerate(other_users):
+        potential_matches.append({
+            'userId': str(user['_id']),
+            'score': scores[i]
+        })
+
     top_matches = sorted(potential_matches, key=lambda x: x['score'], reverse=True)[:20]
-    db.save_suggestions(target_user_id, top_matches)
-
-def run_full_system_refresh(all_public_users, all_user_vectors):
-    """Main job to refresh recommendations for EVERY user."""
-    logging.info("--- Starting Full System Suggestion Refresh ---")
-    for user in all_public_users:
-        user_id_str = str(user['_id'])
-        find_and_save_matches_for_user(user_id_str, all_user_vectors)
-    logging.info("--- Full System Suggestion Refresh Completed ---")
+    db.save_suggestions(str(target_user['_id']), top_matches)
 
 
+# --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        logging.error("Usage: python ai_matcher.py <target_user_id>")
+        sys.exit(1)
+
+    target_user_id = sys.argv[1]
+
+    target_user = db.get_user_by_id(target_user_id)
+    if not target_user:
+        logging.error(f"Target user {target_user_id} not found in database.")
+        sys.exit(1)
+
     all_public_users = db.get_public_users()
     if not all_public_users:
-        logging.warning("No public users found. Exiting.")
-        sys.exit()
-    all_user_vectors = generate_all_public_user_vectors(all_public_users)
+        logging.warning("No public users to match against. Exiting.")
+        sys.exit(0)
 
-    if len(sys.argv) > 1:
-        target_user_id = sys.argv[1]
-        logging.info(f"Received request for a single user: {target_user_id}")
-        find_and_save_matches_for_user(target_user_id, all_user_vectors)
-    else:
-        # If no specific ID is given, run a full refresh for everyone
-        logging.info("No specific user ID provided. Running a full system refresh.")
-        run_full_system_refresh(all_public_users, all_user_vectors)
+    find_and_save_matches_for_user(target_user, all_public_users)
