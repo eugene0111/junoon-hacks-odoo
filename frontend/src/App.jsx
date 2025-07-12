@@ -13,10 +13,10 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
-          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthFrontend />} />
+          <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/public-profile" element={<PublicProfileView />} />
-          <Route path="/land-page" element={<LandingPage />} />
         </Routes>
       </BrowserRouter>
     </>

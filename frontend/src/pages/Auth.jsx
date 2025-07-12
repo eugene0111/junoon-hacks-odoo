@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronRight, Mail, Lock, User, MapPin, Globe, Phone, ArrowLeft, CheckCircle } from 'lucide-react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,6 @@ const InputField = ({ icon: Icon, ...props }) => (
     />
   </div>
 );
-
 
 const AuthFrontend = () => {
   const [isLogin, setIsLogin] = useState(true);

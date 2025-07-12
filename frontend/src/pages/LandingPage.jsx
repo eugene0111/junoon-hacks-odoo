@@ -2,13 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Users, Repeat, ShieldCheck, Zap, MessageSquare, Moon, Sun } from 'lucide-react';
 
-
-// --- MAIN LANDING PAGE COMPONENT ---
 const LandingPage = () => {
-  // State for managing dark mode
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
 
-  // Effect to apply the dark mode class to the <html> tag and save preference
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -26,7 +22,6 @@ const LandingPage = () => {
 
   return (
     <div className="bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-200 antialiased">
-      {/* --- Header --- */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg z-50 border-b border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -47,7 +42,6 @@ const LandingPage = () => {
       </header>
 
       <main>
-        {/* --- Hero Section --- */}
         <section className="pt-32 pb-20 md:pt-40 md:pb-28 text-center bg-slate-50 dark:bg-slate-800/50">
           <div className="container mx-auto px-6">
             <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 dark:text-white leading-tight">
@@ -66,7 +60,6 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* --- How It Works Section --- */}
         <section id="how-it-works" className="py-20">
           <div className="container mx-auto px-6">
             <div className="text-center mb-12">
@@ -81,7 +74,6 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* --- Features Section --- */}
         <section id="features" className="py-20 bg-slate-50 dark:bg-slate-800/50">
           <div className="container mx-auto px-6">
              <div className="text-center mb-12">
@@ -98,7 +90,6 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* --- Final CTA Section --- */}
         <section className="py-24 bg-blue-800">
             <div className="container mx-auto px-6 text-center">
                 <h2 className="text-3xl md:text-4xl font-extrabold text-white">Ready to Grow?</h2>
@@ -112,7 +103,6 @@ const LandingPage = () => {
         </section>
       </main>
 
-      {/* --- Footer --- */}
       <footer className="bg-slate-900 dark:bg-slate-900/50 text-slate-400 py-12">
         <div className="container mx-auto px-6 text-center">
             <p>© {new Date().getFullYear()} SkillSwap. All rights reserved.</p>
@@ -126,8 +116,6 @@ const LandingPage = () => {
     </div>
   );
 };
-
-// --- HELPER COMPONENTS ---
 
 const DarkModeToggle = ({ isDarkMode, toggleDarkMode }) => (
     <button
