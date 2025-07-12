@@ -12,7 +12,7 @@ const runMatcherAndGetIds = (userId) => {
         const pythonScriptPath = path.join(__dirname, '..', 'ai', 'ai_matcher.py');
         console.log(`[Node.js] Spawning AI matcher for user: ${userId}`);
 
-        const pythonProcess = spawn('python', [pythonScriptPath, userId]);
+        const pythonProcess = spawn('python3', [pythonScriptPath, userId]);
         
         let output = ''; // Buffer to collect stdout data
         let errorOutput = ''; // Buffer to collect stderr data
