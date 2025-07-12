@@ -9,7 +9,7 @@ const getAuthToken = () => localStorage.getItem('token');
 
 const PlatformActivityChart = ({ users, swaps }) => {
     const chartData = useMemo(() => {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const currentYear = new Date().getFullYear();
 
         const monthlyData = monthNames.map(name => ({ name, users: 0, swaps: 0 }));
