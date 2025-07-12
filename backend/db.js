@@ -192,14 +192,12 @@ PostSchema.pre(/^find/, function(next) {
   next();
 });
 
-// --- UPDATED SwapSchema ---
 const SwapSchema = new mongoose.Schema({
   post: {
     type: mongoose.Schema.ObjectId,
     ref: 'Post',
-    required: false // CHANGED: A swap is no longer required to be linked to a post.
+    required: false 
   },
-  // NEW: This field holds the details for direct user-to-user swaps.
   details: {
       skillOfferedByRequester: String,
       skillWantedByRequester: String,

@@ -3,19 +3,12 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, Loader2, AlertTriangle, Menu, X, Search, CheckCircle, Eye } from 'lucide-react';
 import { Transition } from '@headlessui/react';
-// --- IMPORT THE CHARTING COMPONENTS ---
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-
-// A helper to get the auth token, assuming it's in localStorage
 const getAuthToken = () => localStorage.getItem('token');
 
-
-// --- NEW COMPONENT FOR THE PLATFORM ACTIVITY CHART ---
 const PlatformActivityChart = ({ users, swaps }) => {
-    // Process data for the chart
     const data = [
-        // This is sample data. In a real app, you'd process your actual user/swap data by month/day.
         { name: 'Jan', users: 12, swaps: 2 }, { name: 'Feb', users: 19, swaps: 3 },
         { name: 'Mar', users: 22, swaps: 1 }, { name: 'Apr', users: 25, swaps: 5 },
         { name: 'May', users: 21, swaps: 4 }, { name: 'Jun', users: 27, swaps: 7 },
@@ -217,7 +210,6 @@ const SidebarItem = ({ icon, label, view, activeView, onClick }) => (
     </button>
 );
 
-// --- UPDATED DashboardView with the chart ---
 const DashboardView = ({ users, swaps, moderationQueue }) => {
     const totalUsers = users.length;
     const bannedUsers = users.filter(user => user.status === 'Banned').length;
@@ -234,7 +226,6 @@ const DashboardView = ({ users, swaps, moderationQueue }) => {
                 <StatCard title="Banned Users" value={bannedUsers} icon={<Ban className="text-rose-500" />} />
             </div>
             <div className="mt-8">
-                {/* --- The chart component is now used here --- */}
                 <PlatformActivityChart users={users} swaps={swaps} />
             </div>
         </div>
