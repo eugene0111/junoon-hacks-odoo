@@ -1,19 +1,73 @@
 import React, { useState, Fragment, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, BarChart2, Loader2, AlertTriangle, Menu, X, Search, CheckCircle, Eye } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, Loader2, AlertTriangle, Menu, X, Search, CheckCircle, Eye } from 'lucide-react';
 import { Transition } from '@headlessui/react';
+// --- IMPORT THE CHARTING COMPONENTS ---
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
 
 // A helper to get the auth token, assuming it's in localStorage
 const getAuthToken = () => localStorage.getItem('token');
 
-// Removed mockModerationItems as it's now dynamic
 
-const mockSwaps = [
-    {id: 'S1024', participants: ['Alex Doe', 'Marc Demo'], skill: 'React <> Python', status: 'Accepted', date: '2024-11-01'},
-    {id: 'S1023', participants: ['Chris Lee', 'Jane Smith'], skill: 'Design <> Cooking', status: 'Cancelled', date: '2024-10-28'},
-    {id: 'S1022', participants: ['Alex Doe', 'NewUser123'], skill: 'Photoshop <> Marketing', status: 'Pending', date: '2024-11-05'},
-];
+// --- NEW COMPONENT FOR THE PLATFORM ACTIVITY CHART ---
+const PlatformActivityChart = ({ users, swaps }) => {
+    // Process data for the chart
+    const data = [
+        // This is sample data. In a real app, you'd process your actual user/swap data by month/day.
+        { name: 'Jan', users: 12, swaps: 2 }, { name: 'Feb', users: 19, swaps: 3 },
+        { name: 'Mar', users: 22, swaps: 1 }, { name: 'Apr', users: 25, swaps: 5 },
+        { name: 'May', users: 21, swaps: 4 }, { name: 'Jun', users: 27, swaps: 7 },
+        { name: 'Jul', users: users.length, swaps: swaps.filter(s => s.status === 'accepted').length },
+    ];
+
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+          return (
+            <div className="p-3 bg-white border border-slate-300 rounded-lg shadow-lg">
+              <p className="font-bold text-slate-800">{`Month: ${label}`}</p>
+              <p className="text-sm text-blue-600">{`New Users: ${payload[0].value}`}</p>
+              <p className="text-sm text-emerald-600">{`Active Swaps: ${payload[1].value}`}</p>
+            </div>
+          );
+        }
+        return null;
+    };
+
+    return (
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4">Platform Activity</h3>
+            <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                        data={data}
+                        margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                    >
+                        <defs>
+                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorSwaps" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
+                        <YAxis stroke="#6b7280" fontSize={12} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend wrapperStyle={{fontSize: "14px"}} />
+                        <Area type="monotone" dataKey="users" name="Total Users" stroke="#3b82f6" fill="url(#colorUsers)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="swaps" name="Active Swaps" stroke="#10b981" fill="url(#colorSwaps)" strokeWidth={2} />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+};
+
 
 const AdminDashboardPage = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,7 +77,6 @@ const AdminDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Filter users for the moderation queue based on their profile analysis
     const moderationQueue = users.filter(user => 
         user.profileAnalysis && (user.profileAnalysis.rating === 'Moderate' || user.profileAnalysis.rating === 'Severe')
     );
@@ -36,15 +89,12 @@ const AdminDashboardPage = () => {
                 setLoading(false);
                 return;
             }
-            const config = {
-                headers: { Authorization: `Bearer ${token}` }
-            };
+            const config = { headers: { Authorization: `Bearer ${token}` } };
 
             try {
-                // Fetching both users and swaps
                 const [usersRes, swapsRes] = await Promise.all([
                     axios.get('http://localhost:3000/api/users', config),
-                    axios.get('http://localhost:3000/api/swaps/all', config)
+                    axios.get('http://localhost:3000/api/swaps', config)
                 ]);
 
                 if (usersRes.data && usersRes.data.success) {
@@ -66,7 +116,6 @@ const AdminDashboardPage = () => {
 
             } catch (err) {
                 setError(err.response?.data?.message || err.message || "An unknown error occurred while fetching data.");
-                console.error("Error fetching data:", err);
             } finally {
                 setLoading(false);
             }
@@ -75,24 +124,13 @@ const AdminDashboardPage = () => {
         fetchData();
     }, []);
     
-    // Handler to update a user's status in the main user list
     const updateUserInList = (userId, updates) => {
         setUsers(users.map(u => (u._id === userId ? { ...u, ...updates } : u)));
     };
 
-
     const renderView = () => {
-        if (loading) {
-            return <div className="flex justify-center items-center h-full"><Loader2 className="w-12 h-12 animate-spin text-blue-500"/></div>;
-        }
-        if (error) {
-            return (
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg flex items-center">
-                    <AlertTriangle className="mr-3" />
-                    <div><p className="font-bold">Error</p><p>{error}</p></div>
-                </div>
-            );
-        }
+        if (loading) { return <div className="flex justify-center items-center h-full"><Loader2 className="w-12 h-12 animate-spin text-blue-500"/></div>; }
+        if (error) { return (<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg flex items-center"><AlertTriangle className="mr-3" /><div><p className="font-bold">Error</p><p>{error}</p></div></div>); }
 
         switch(activeView) {
             case 'dashboard': return <DashboardView users={users} swaps={swaps} moderationQueue={moderationQueue} />;
@@ -121,9 +159,7 @@ const AdminDashboardPage = () => {
 const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen }) => {
     const handleItemClick = (view) => {
         setActiveView(view);
-        if (window.innerWidth < 1024) {
-            setSidebarOpen(false);
-        }
+        if (window.innerWidth < 1024) { setSidebarOpen(false); }
     };
     
     return (
@@ -181,6 +217,7 @@ const SidebarItem = ({ icon, label, view, activeView, onClick }) => (
     </button>
 );
 
+// --- UPDATED DashboardView with the chart ---
 const DashboardView = ({ users, swaps, moderationQueue }) => {
     const totalUsers = users.length;
     const bannedUsers = users.filter(user => user.status === 'Banned').length;
@@ -196,9 +233,9 @@ const DashboardView = ({ users, swaps, moderationQueue }) => {
                 <StatCard title="Pending Moderation" value={pendingModeration} icon={<ShieldX className="text-amber-500" />} />
                 <StatCard title="Banned Users" value={bannedUsers} icon={<Ban className="text-rose-500" />} />
             </div>
-            <div className="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4">Platform Activity</h3>
-                <div className="h-64 bg-slate-200 rounded-lg flex items-center justify-center"><BarChart2 className="w-16 h-16 text-slate-400" /><p className="text-slate-500 ml-4">Chart placeholder</p></div>
+            <div className="mt-8">
+                {/* --- The chart component is now used here --- */}
+                <PlatformActivityChart users={users} swaps={swaps} />
             </div>
         </div>
     );
@@ -227,7 +264,6 @@ const UserManagementView = ({ users, setUsers }) => {
                 ));
                 alert(`User has been successfully ${action}ned.`);
             } catch (error) {
-                console.error(`Failed to ${action} user:`, error);
                 alert(`Error: Could not ${action} the user. Please try again.`);
             }
         }
@@ -285,8 +321,6 @@ const ContentModerationView = ({ moderationQueue, onUserUpdate }) => {
     };
 
     const handleDismiss = (userId) => {
-        // Here you would typically make an API call to update the user's profile analysis status.
-        // For now, we'll just update the state locally via the parent handler.
         console.log(`Dismissing flag for user ${userId}.`);
         onUserUpdate(userId, { profileAnalysis: { rating: 'Good', recommendation: 'Flag dismissed by admin.' } });
     };
@@ -305,7 +339,6 @@ const ContentModerationView = ({ moderationQueue, onUserUpdate }) => {
                 onUserUpdate(userId, { status: 'Banned', profileAnalysis: { rating: 'Good', recommendation: 'User banned by admin.' } });
                 alert("User has been banned.");
             } catch (error) {
-                console.error("Failed to ban user:", error);
                 alert("Error: Could not ban user.");
             }
         }
