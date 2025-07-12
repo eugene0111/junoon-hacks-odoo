@@ -221,6 +221,21 @@ const SwapSchema = new mongoose.Schema({
   }
 });
 
+const SuggestionSchema = new mongoose.Schema({
+  requester: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
+  matches: [{
+    type: mongoose.Schema.ObjectId,
+    ref: 'User'
+  }]
+}, {
+  timestamps: true 
+});
+
 const User = mongoose.model('User', UserSchema);
 const Post = mongoose.model('Post', PostSchema);
 const Swap = mongoose.model('Swap', SwapSchema);
