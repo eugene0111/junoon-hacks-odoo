@@ -1,15 +1,11 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, Fragment, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, BarChart2, Bell, Search, Menu, X } from 'lucide-react';
+import axios from 'axios';
+import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, BarChart2, Loader2, AlertTriangle, Menu, X, Search, CheckCircle } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 
-// --- MOCK DATA ---
-const mockUsers = [
-  { id: 1, name: 'Alex Doe', email: 'alex.doe@example.com', joined: '2024-10-15', status: 'Active' },
-  { id: 2, name: 'Marc Demo', email: 'marc.demo@example.com', joined: '2024-10-12', status: 'Active' },
-  { id: 3, name: 'Jane Smith', email: 'jane.smith@example.com', joined: '2024-09-28', status: 'Banned' },
-  { id: 4, name: 'Chris Lee', email: 'chris.lee@example.com', joined: '2024-09-20', status: 'Active' },
-];
+// A helper to get the auth token, assuming it's in localStorage
+const getAuthToken = () => localStorage.getItem('token');
 
 const mockModerationItems = [
   { id: 1, user: 'NewUser123', skill: 'Professional Cuddler', reason: 'Potentially inappropriate' },
@@ -22,21 +18,65 @@ const mockSwaps = [
     {id: 'S1022', participants: ['Alex Doe', 'NewUser123'], skill: 'Photoshop <> Marketing', status: 'Pending', date: '2024-11-05'},
 ];
 
-
-// --- MAIN ADMIN PAGE COMPONENT ---
 const AdminDashboardPage = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeView, setActiveView] = useState('dashboard');
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [moderationItems, setModerationItems] = useState(mockModerationItems);
+    const [swaps, setSwaps] = useState(mockSwaps);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await axios.get('http://localhost:3000/api/users');
+                if (response.data && response.data.success) {
+                    // Correctly map the `banned` boolean from the API to a 'status' string
+                    const usersWithStatus = response.data.data.map(user => ({
+                        ...user,
+                        status: user.banned ? 'Banned' : 'Active',
+                        joined: new Date(user.createdAt).toLocaleDateString(),
+                    }));
+                    setUsers(usersWithStatus);
+                } else {
+                    throw new Error('Failed to fetch user data.');
+                }
+            } catch (err) {
+                setError(err.message || "An unknown error occurred while fetching users.");
+                console.error("Error fetching users:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, []);
 
     const renderView = () => {
+        if (loading) {
+            return <div className="flex justify-center items-center h-full"><Loader2 className="w-12 h-12 animate-spin text-blue-500"/></div>;
+        }
+        if (error) {
+            return (
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg flex items-center">
+                    <AlertTriangle className="mr-3" />
+                    <div>
+                        <p className="font-bold">Error</p>
+                        <p>{error}</p>
+                    </div>
+                </div>
+            );
+        }
+
         switch(activeView) {
-            case 'dashboard': return <DashboardView />;
-            case 'users': return <UserManagementView />;
-            case 'moderation': return <ContentModerationView />;
-            case 'swaps': return <SwapMonitoringView />;
+            case 'dashboard': return <DashboardView users={users} swaps={swaps} moderationItems={moderationItems} />;
+            case 'users': return <UserManagementView users={users} setUsers={setUsers} />;
+            case 'moderation': return <ContentModerationView moderationItems={moderationItems} setModerationItems={setModerationItems} />;
+            case 'swaps': return <SwapMonitoringView swaps={swaps} />;
             case 'announcements': return <AnnouncementsView />;
-            case 'reports': return <ReportsView />;
-            default: return <DashboardView />;
+            case 'reports': return <ReportsView users={users} swaps={swaps} />;
+            default: return <DashboardView users={users} swaps={swaps} moderationItems={moderationItems} />;
         }
     };
     
@@ -53,7 +93,6 @@ const AdminDashboardPage = () => {
     );
 };
 
-
 const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen }) => {
     const handleItemClick = (view) => {
         setActiveView(view);
@@ -64,34 +103,14 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen }) => 
     
     return (
         <>
-            {/* Mobile Sidebar */}
             <Transition.Root show={sidebarOpen} as={Fragment}>
                 <div className="lg:hidden">
-                    <Transition.Child
-                        as={Fragment}
-                        enter="transition-opacity ease-linear duration-300"
-                        enterFrom="opacity-0"
-                        enterTo="opacity-100"
-                        leave="transition-opacity ease-linear duration-300"
-                        leaveFrom="opacity-100"
-                        leaveTo="opacity-0"
-                    >
+                    <Transition.Child as={Fragment} enter="transition-opacity ease-linear duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="transition-opacity ease-linear duration-300" leaveFrom="opacity-100" leaveTo="opacity-0">
                         <div className="fixed inset-0 bg-gray-900/80" onClick={() => setSidebarOpen(false)} />
                     </Transition.Child>
-
-                    <Transition.Child
-                        as={Fragment}
-                        enter="transition ease-in-out duration-300 transform"
-                        enterFrom="-translate-x-full"
-                        enterTo="translate-x-0"
-                        leave="transition ease-in-out duration-300 transform"
-                        leaveFrom="translate-x-0"
-                        leaveTo="-translate-x-full"
-                    >
+                    <Transition.Child as={Fragment} enter="transition ease-in-out duration-300 transform" enterFrom="-translate-x-full" enterTo="translate-x-0" leave="transition ease-in-out duration-300 transform" leaveFrom="translate-x-0" leaveTo="-translate-x-full">
                          <aside className="fixed inset-y-0 left-0 w-64 bg-white shadow-md flex flex-col z-40">
-                            <div className="p-6 border-b border-slate-200">
-                                <h1 className="text-2xl font-bold text-slate-900">SkillSwap <span className="text-blue-600">Admin</span></h1>
-                            </div>
+                            <div className="p-6 border-b border-slate-200"><h1 className="text-2xl font-bold text-slate-900">SkillSwap <span className="text-blue-600">Admin</span></h1></div>
                             <nav className="flex-1 p-4 space-y-2">
                                 <SidebarItem icon={<LayoutDashboard />} label="Dashboard" view="dashboard" activeView={activeView} onClick={handleItemClick} />
                                 <SidebarItem icon={<Users />} label="User Management" view="users" activeView={activeView} onClick={handleItemClick} />
@@ -100,19 +119,13 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen }) => 
                                 <SidebarItem icon={<Send />} label="Announcements" view="announcements" activeView={activeView} onClick={handleItemClick} />
                                 <SidebarItem icon={<Download />} label="Reports" view="reports" activeView={activeView} onClick={handleItemClick} />
                             </nav>
-                            <div className="p-4 border-t border-slate-200">
-                                 <Link to="/" className="text-slate-600 hover:text-blue-600 font-semibold">Back to Site</Link>
-                            </div>
+                            <div className="p-4 border-t border-slate-200"><Link to="/" className="text-slate-600 hover:text-blue-600 font-semibold">Back to Site</Link></div>
                         </aside>
                     </Transition.Child>
                 </div>
             </Transition.Root>
-
-             {/* Desktop Sidebar */}
             <aside className="hidden lg:flex w-64 bg-white shadow-md flex-col flex-shrink-0">
-                <div className="p-6 border-b border-slate-200">
-                    <h1 className="text-2xl font-bold text-slate-900">SkillSwap <span className="text-blue-600">Admin</span></h1>
-                </div>
+                <div className="p-6 border-b border-slate-200"><h1 className="text-2xl font-bold text-slate-900">SkillSwap <span className="text-blue-600">Admin</span></h1></div>
                 <nav className="flex-1 p-4 space-y-2">
                     <SidebarItem icon={<LayoutDashboard />} label="Dashboard" view="dashboard" activeView={activeView} onClick={setActiveView} />
                     <SidebarItem icon={<Users />} label="User Management" view="users" activeView={activeView} onClick={setActiveView} />
@@ -121,9 +134,7 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen }) => 
                     <SidebarItem icon={<Send />} label="Announcements" view="announcements" activeView={activeView} onClick={setActiveView} />
                     <SidebarItem icon={<Download />} label="Reports" view="reports" activeView={activeView} onClick={setActiveView} />
                 </nav>
-                <div className="p-4 border-t border-slate-200">
-                     <Link to="/" className="text-slate-600 hover:text-blue-600 font-semibold">Back to Site</Link>
-                </div>
+                <div className="p-4 border-t border-slate-200"><Link to="/" className="text-slate-600 hover:text-blue-600 font-semibold">Back to Site</Link></div>
             </aside>
         </>
     );
@@ -139,43 +150,64 @@ const Header = ({ sidebarOpen, setSidebarOpen }) => (
 );
 
 const SidebarItem = ({ icon, label, view, activeView, onClick }) => (
-    <button 
-        onClick={() => onClick(view)}
-        className={`w-full flex items-center space-x-3 py-2 px-4 rounded-lg transition-colors ${activeView === view ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-200'}`}
-    >
+    <button onClick={() => onClick(view)} className={`w-full flex items-center space-x-3 py-2 px-4 rounded-lg transition-colors ${activeView === view ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-200'}`}>
         {icon}
         <span className="font-semibold">{label}</span>
     </button>
 );
 
+const DashboardView = ({ users, swaps, moderationItems }) => {
+    const totalUsers = users.length;
+    const bannedUsers = users.filter(user => user.status === 'Banned').length;
+    const activeSwaps = swaps.filter(swap => swap.status === 'Accepted' || swap.status === 'Pending').length;
+    const pendingModeration = moderationItems.length;
 
-const DashboardView = () => (
-    <div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Dashboard Overview</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <StatCard title="Total Users" value="1,258" icon={<Users className="text-blue-500" />} />
-            <StatCard title="Active Swaps" value="312" icon={<Repeat className="text-emerald-500" />} />
-            <StatCard title="Pending Moderation" value="2" icon={<ShieldX className="text-amber-500" />} />
-            <StatCard title="Banned Users" value="17" icon={<Ban className="text-rose-500" />} />
-        </div>
-        <div className="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4">Platform Activity</h3>
-            <div className="h-64 bg-slate-200 rounded-lg flex items-center justify-center">
-                <BarChart2 className="w-16 h-16 text-slate-400" />
-                <p className="text-slate-500 ml-4">Chart placeholder</p>
+    return (
+        <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Dashboard Overview</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <StatCard title="Total Users" value={totalUsers} icon={<Users className="text-blue-500" />} />
+                <StatCard title="Active Swaps" value={activeSwaps} icon={<Repeat className="text-emerald-500" />} />
+                <StatCard title="Pending Moderation" value={pendingModeration} icon={<ShieldX className="text-amber-500" />} />
+                <StatCard title="Banned Users" value={bannedUsers} icon={<Ban className="text-rose-500" />} />
+            </div>
+            <div className="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4">Platform Activity</h3>
+                <div className="h-64 bg-slate-200 rounded-lg flex items-center justify-center"><BarChart2 className="w-16 h-16 text-slate-400" /><p className="text-slate-500 ml-4">Chart placeholder</p></div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
-const UserManagementView = () => {
-    const [users, setUsers] = useState(mockUsers);
-    const banUser = (userId) => {
-        if(window.confirm('Are you sure you want to ban this user?')) {
-            setUsers(users.map(u => u.id === userId ? {...u, status: 'Banned'} : u));
-            alert(`User ${userId} has been banned.`);
+const UserManagementView = ({ users, setUsers }) => {
+    const toggleUserBanStatus = async (userId, currentStatus) => {
+        const isBanned = currentStatus === 'Banned';
+        const action = isBanned ? 'unban' : 'ban';
+        const confirmationText = `Are you sure you want to ${action} this user?`;
+
+        if (window.confirm(confirmationText)) {
+            const token = getAuthToken();
+            if (!token) {
+                alert("Authentication error. Please log in again.");
+                return;
+            }
+
+            try {
+                await axios.put(`http://localhost:3000/api/users/${userId}/${action}`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                setUsers(users.map(u => 
+                    u._id === userId ? { ...u, status: isBanned ? 'Active' : 'Banned' } : u
+                ));
+                alert(`User has been successfully ${action}ned.`);
+            } catch (error) {
+                console.error(`Failed to ${action} user:`, error);
+                alert(`Error: Could not ${action} the user. Please try again.`);
+            }
         }
     };
+
     return (
         <div>
              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">User Management</h2>
@@ -190,19 +222,33 @@ const UserManagementView = () => {
                 <div className="overflow-x-auto">
                      <table className="w-full text-left min-w-[640px]">
                         <thead className="border-b border-slate-200 text-slate-600">
-                            <tr>
-                                <th className="p-3">User</th><th className="p-3">Email</th><th className="p-3">Joined Date</th><th className="p-3">Status</th><th className="p-3 text-right">Actions</th>
-                            </tr>
+                            <tr><th className="p-3">User</th><th className="p-3">Email</th><th className="p-3">Joined Date</th><th className="p-3">Status</th><th className="p-3 text-right">Actions</th></tr>
                         </thead>
                         <tbody>
                             {users.map(user => (
-                                <tr key={user.id} className="border-b border-slate-100">
-                                    <td className="p-3 font-semibold">{user.name}</td>
+                                <tr key={user._id} className="border-b border-slate-100">
+                                    <td className="p-3 font-semibold">{user.firstName} {user.lastName}</td>
                                     <td className="p-3 text-sm">{user.email}</td>
                                     <td className="p-3 text-sm">{user.joined}</td>
-                                    <td className="p-3"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>{user.status}</span></td>
+                                    <td className="p-3">
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                            {user.status}
+                                        </span>
+                                    </td>
                                     <td className="p-3 text-right">
-                                        <button onClick={() => banUser(user.id)} disabled={user.status === 'Banned'} className="bg-rose-500 text-white px-3 py-1 rounded-lg hover:bg-rose-600 disabled:bg-rose-300 disabled:cursor-not-allowed flex items-center gap-1 float-right text-sm"><Ban size={14}/> Ban</button>
+                                        {user.status === 'Banned' ? (
+                                            <button 
+                                                onClick={() => toggleUserBanStatus(user._id, user.status)} 
+                                                className="bg-emerald-500 text-white px-3 py-1 rounded-lg hover:bg-emerald-600 flex items-center gap-1 float-right text-sm">
+                                                <CheckCircle size={14}/> Unban
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={() => toggleUserBanStatus(user._id, user.status)} 
+                                                className="bg-rose-500 text-white px-3 py-1 rounded-lg hover:bg-rose-600 flex items-center gap-1 float-right text-sm">
+                                                <Ban size={14}/> Ban
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -214,29 +260,34 @@ const UserManagementView = () => {
     );
 };
 
-const ContentModerationView = () => (
-    <div>
-         <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Content Moderation Queue</h2>
-         <div className="space-y-4">
-            {mockModerationItems.map(item => (
-                <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <p className="font-bold text-slate-800">{item.skill}</p>
+const ContentModerationView = ({ moderationItems, setModerationItems }) => {
+    const handleAction = (itemId) => {
+        setModerationItems(moderationItems.filter(item => item.id !== itemId));
+    };
 
-                        <p className="text-sm text-slate-500 mt-1">Submitted by: <span className="font-semibold">{item.user}</span></p>
-                        <p className="text-sm text-slate-500">Reason: {item.reason}</p>
+    return (
+        <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Content Moderation Queue</h2>
+            <div className="space-y-4">
+                {moderationItems.length > 0 ? moderationItems.map(item => (
+                    <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <p className="font-bold text-slate-800">{item.skill}</p>
+                            <p className="text-sm text-slate-500 mt-1">Submitted by: <span className="font-semibold">{item.user}</span></p>
+                            <p className="text-sm text-slate-500">Reason: {item.reason}</p>
+                        </div>
+                        <div className="flex space-x-2 w-full sm:w-auto">
+                            <button onClick={() => handleAction(item.id)} className="flex-1 sm:flex-none bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 text-sm font-semibold">Approve</button>
+                            <button onClick={() => handleAction(item.id)} className="flex-1 sm:flex-none bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 text-sm font-semibold">Reject</button>
+                        </div>
                     </div>
-                    <div className="flex space-x-2 w-full sm:w-auto">
-                        <button className="flex-1 sm:flex-none bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 text-sm font-semibold">Approve</button>
-                        <button className="flex-1 sm:flex-none bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 text-sm font-semibold">Reject</button>
-                    </div>
-                </div>
-            ))}
-         </div>
-    </div>
-);
+                )) : <p className="text-center text-slate-500">The moderation queue is empty.</p>}
+            </div>
+        </div>
+    );
+};
 
-const SwapMonitoringView = () => (
+const SwapMonitoringView = ({swaps}) => (
     <div>
         <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Swap Monitoring</h2>
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
@@ -248,7 +299,7 @@ const SwapMonitoringView = () => (
                         </tr>
                     </thead>
                     <tbody>
-                        {mockSwaps.map(swap => (
+                        {swaps.map(swap => (
                              <tr key={swap.id} className="border-b border-slate-100">
                                 <td className="p-3 font-semibold">{swap.id}</td>
                                 <td className="p-3 text-sm">{swap.participants.join(', ')}</td>
@@ -292,17 +343,42 @@ const AnnouncementsView = () => (
     </div>
 );
 
-const ReportsView = () => (
-    <div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Download Reports</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ReportCard title="User Activity Log" description="CSV of all user sign-ups, logins, and profile updates." />
-            <ReportCard title="Feedback & Ratings" description="Complete log of all feedback and ratings submitted by users." />
-            <ReportCard title="Swap Statistics" description="Detailed report on all pending, completed, and cancelled swaps." />
-        </div>
-    </div>
-);
+const ReportsView = ({ users, swaps }) => {
+    const downloadCSV = (data, filename) => {
+        if (!data || data.length === 0) {
+            alert("No data available to download.");
+            return;
+        }
+        const headers = Object.keys(data[0]);
+        const csvContent = [
+            headers.join(','),
+            ...data.map(row => 
+                headers.map(header => `"${String(row[header]).replace(/"/g, '""')}"`).join(',')
+            )
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${filename}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
+    return (
+        <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Download Reports</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <ReportCard title="User Activity Log" description="CSV of all users in the system." onDownload={() => downloadCSV(users, 'user_activity_log')} />
+                <ReportCard title="Feedback & Ratings" description="Complete log of all feedback and ratings submitted by users." onDownload={() => alert("No feedback data available.")}/>
+                <ReportCard title="Swap Statistics" description="Detailed report on all pending, completed, and cancelled swaps." onDownload={() => downloadCSV(swaps, 'swap_statistics')}/>
+            </div>
+        </div>
+    );
+};
 
 const StatCard = ({ title, value, icon }) => (
     <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm flex items-center space-x-4">
@@ -314,11 +390,11 @@ const StatCard = ({ title, value, icon }) => (
     </div>
 );
 
-const ReportCard = ({ title, description }) => (
+const ReportCard = ({ title, description, onDownload }) => (
     <div className="bg-white p-6 rounded-xl shadow-sm flex flex-col">
         <h3 className="text-base sm:text-lg font-bold text-slate-800">{title}</h3>
         <p className="text-sm text-slate-500 mt-2 mb-4 flex-grow">{description}</p>
-        <button className="w-full bg-slate-800 text-white font-semibold py-2 rounded-lg hover:bg-slate-900 flex items-center justify-center gap-2 text-sm">
+        <button onClick={onDownload} className="w-full bg-slate-800 text-white font-semibold py-2 rounded-lg hover:bg-slate-900 flex items-center justify-center gap-2 text-sm">
             <Download size={16}/> Download .CSV
         </button>
     </div>

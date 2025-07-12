@@ -123,4 +123,44 @@ router.put('/photo', protect, upload.single('photo'), async (req, res) => {
   }
 });
 
+router.put('/:id/ban', protect, async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.params.id, 
+            { banned: true },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.json({ success: true, message: `User ${user.firstName} has been banned.` });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// --- NEW: UNBAN A USER ---
+// This route is accessible by any logged-in user.
+router.put('/:id/unban', protect, async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.params.id, 
+            { banned: false },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.json({ success: true, message: `User ${user.firstName} has been unbanned.` });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;
