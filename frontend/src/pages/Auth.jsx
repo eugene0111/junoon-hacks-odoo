@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronRight, Mail, Lock, User, MapPin, Globe, Phone, ArrowLeft, CheckCircle } from 'lucide-react';
+import axios from "axios";
 
 const InputField = ({ icon: Icon, ...props }) => (
   <div className="relative">
@@ -72,17 +73,19 @@ const AuthFrontend = () => {
       return;
     }
     console.log('Signup data:', formData);
-    // Here you would make the API call to your backend
-    // const response = await fetch('/api/auth/register', { ... });
+    const response = await axios.post(`http://localhost:3000/api/auth/register`, formData);
+    const token = response.data.token;
+    localStorage.setItem("token", token);
+    alert("Signed Up");
   };
 
   const handleLogin = async () => {
     console.log('Login data:', loginData);
-    // Here you would make the API call to your backend
-    // const response = await fetch('/api/auth/login', { ... });
+    const response = await axios.post(`http://localhost:3000/api/auth/login`, loginData);
+    const token = response.data.token;
+    localStorage.setItem("token", token);
+    alert("Signed in");
   };
-
-  // The InputField component is now defined outside and won't be re-created on render.
 
   if (!isLogin && signupStep === 2) {
     return (
