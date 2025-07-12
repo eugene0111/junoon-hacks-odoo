@@ -52,9 +52,9 @@ const LandingPage = () => {
               Join a global community where you can learn new skills by sharing your expertise. No money exchanged, just pure knowledge and growth.
             </p>
             <div className="mt-10">
-              <Link to="/signup" className="bg-blue-600 text-white font-bold py-4 px-8 rounded-xl hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 text-lg">
+              <button onClick={() => {navigate("/auth")}} className="bg-blue-600 text-white font-bold py-4 px-8 rounded-xl hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 text-lg">
                 Start Your First Swap
-              </Link>
+              </button>
             </div>
           </div>
         </section>

@@ -114,9 +114,6 @@ const RequestCard = ({ request }) => {
   
 const Pagination = () => (<div className="mt-8 flex justify-center items-center space-x-2 text-gray-600"><button className="px-3 py-1 rounded-lg hover:bg-gray-200 transition-colors">{"<"}</button><button className="px-3 py-1 rounded-lg bg-gray-800 text-white font-bold">1</button><button className="px-3 py-1 rounded-lg hover:bg-gray-200 transition-colors">2</button><button className="px-3 py-1 rounded-lg hover:bg-gray-200 transition-colors">3</button><button className="px-3 py-1 rounded-lg hover:bg-gray-200 transition-colors">{">"}</button></div>);
 
-
-// --- PAGE VIEWS ---
-
 const DiscoverView = () => (
     <>
       <div className="px-8 pt-6">
