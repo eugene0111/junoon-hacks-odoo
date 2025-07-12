@@ -12,28 +12,35 @@ const mockModerationItems = [
   { id: 2, user: 'SpamBot', skill: 'FREE MONEY CLICK HERE', reason: 'Obvious spam' },
 ];
 
-const mockSwaps = [
-    {id: 'S1024', participants: ['Alex Doe', 'Marc Demo'], skill: 'React <> Python', status: 'Accepted', date: '2024-11-01'},
-    {id: 'S1023', participants: ['Chris Lee', 'Jane Smith'], skill: 'Design <> Cooking', status: 'Cancelled', date: '2024-10-28'},
-    {id: 'S1022', participants: ['Alex Doe', 'NewUser123'], skill: 'Photoshop <> Marketing', status: 'Pending', date: '2024-11-05'},
-];
-
 const AdminDashboardPage = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeView, setActiveView] = useState('dashboard');
     const [users, setUsers] = useState([]);
+    const [swaps, setSwaps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [moderationItems, setModerationItems] = useState(mockModerationItems);
-    const [swaps, setSwaps] = useState(mockSwaps);
 
     useEffect(() => {
-        const fetchUsers = async () => {
+        const fetchData = async () => {
+            const token = getAuthToken();
+            if (!token) {
+                setError("Authentication token not found. Please log in.");
+                setLoading(false);
+                return;
+            }
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+
             try {
-                const response = await axios.get('http://localhost:3000/api/users');
-                if (response.data && response.data.success) {
-                    // Correctly map the `banned` boolean from the API to a 'status' string
-                    const usersWithStatus = response.data.data.map(user => ({
+                const [usersRes, swapsRes] = await Promise.all([
+                    axios.get('http://localhost:3000/api/users', config),
+                    axios.get('http://localhost:3000/api/swaps', config)
+                ]);
+
+                if (usersRes.data && usersRes.data.success) {
+                    const usersWithStatus = usersRes.data.data.map(user => ({
                         ...user,
                         status: user.banned ? 'Banned' : 'Active',
                         joined: new Date(user.createdAt).toLocaleDateString(),
@@ -42,15 +49,22 @@ const AdminDashboardPage = () => {
                 } else {
                     throw new Error('Failed to fetch user data.');
                 }
+
+                if (swapsRes.data && swapsRes.data.success) {
+                    setSwaps(swapsRes.data.data);
+                } else {
+                    throw new Error('Failed to fetch swaps data.');
+                }
+
             } catch (err) {
-                setError(err.message || "An unknown error occurred while fetching users.");
-                console.error("Error fetching users:", err);
+                setError(err.response?.data?.message || err.message || "An unknown error occurred while fetching data.");
+                console.error("Error fetching data:", err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchUsers();
+        fetchData();
     }, []);
 
     const renderView = () => {
@@ -159,7 +173,7 @@ const SidebarItem = ({ icon, label, view, activeView, onClick }) => (
 const DashboardView = ({ users, swaps, moderationItems }) => {
     const totalUsers = users.length;
     const bannedUsers = users.filter(user => user.status === 'Banned').length;
-    const activeSwaps = swaps.filter(swap => swap.status === 'Accepted' || swap.status === 'Pending').length;
+    const activeSwaps = swaps.filter(swap => swap.status === 'accepted' || swap.status === 'pending').length;
     const pendingModeration = moderationItems.length;
 
     return (
@@ -287,40 +301,66 @@ const ContentModerationView = ({ moderationItems, setModerationItems }) => {
     );
 };
 
-const SwapMonitoringView = ({swaps}) => (
-    <div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Swap Monitoring</h2>
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-             <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[640px]">
-                    <thead className="border-b border-slate-200 text-slate-600">
-                        <tr>
-                            <th className="p-3">Swap ID</th><th className="p-3">Participants</th><th className="p-3">Skill</th><th className="p-3">Status</th><th className="p-3">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {swaps.map(swap => (
-                             <tr key={swap.id} className="border-b border-slate-100">
-                                <td className="p-3 font-semibold">{swap.id}</td>
-                                <td className="p-3 text-sm">{swap.participants.join(', ')}</td>
-                                <td className="p-3 text-sm">{swap.skill}</td>
-                                <td className="p-3">
-                                     <span className={`px-2 py-1 text-xs font-semibold rounded-full 
-                                        ${swap.status === 'Accepted' ? 'bg-emerald-100 text-emerald-800' : 
-                                          swap.status === 'Cancelled' ? 'bg-rose-100 text-rose-800' : 
-                                          'bg-amber-100 text-amber-800'}`}>
-                                         {swap.status}
-                                     </span>
-                                </td>
-                                <td className="p-3 text-sm">{swap.date}</td>
+const SwapMonitoringView = ({swaps}) => {
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'accepted': return 'bg-emerald-100 text-emerald-800';
+            case 'completed': return 'bg-blue-100 text-blue-800';
+            case 'cancelled':
+            case 'rejected': return 'bg-rose-100 text-rose-800';
+            case 'pending':
+            default: return 'bg-amber-100 text-amber-800';
+        }
+    };
+
+    return (
+        <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Swap Monitoring</h2>
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[640px]">
+                        <thead className="border-b border-slate-200 text-slate-600">
+                            <tr>
+                                <th className="p-3">Swap ID</th>
+                                <th className="p-3">Participants</th>
+                                <th className="p-3">Skill Swap</th>
+                                <th className="p-3">Status</th>
+                                <th className="p-3">Date</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {swaps.map(swap => {
+                                const participants = [
+                                    `${swap.requester.firstName || ''} ${swap.requester.lastName || ''}`.trim(),
+                                    `${swap.provider.firstName || ''} ${swap.provider.lastName || ''}`.trim()
+                                ];
+                                let skillSwapText = 'N/A';
+                                if (swap.post) {
+                                    skillSwapText = `${swap.post.skillOffered} <> ${swap.post.skillWanted}`;
+                                } else if (swap.details) {
+                                    skillSwapText = `${swap.details.skillOfferedByRequester} <> ${swap.details.skillWantedByRequester}`;
+                                }
+                                return (
+                                     <tr key={swap._id} className="border-b border-slate-100">
+                                        <td className="p-3 font-mono text-xs">{swap._id}</td>
+                                        <td className="p-3 text-sm">{participants.join(' & ')}</td>
+                                        <td className="p-3 text-sm">{skillSwapText}</td>
+                                        <td className="p-3">
+                                             <span className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${getStatusClass(swap.status)}`}>
+                                                 {swap.status}
+                                             </span>
+                                        </td>
+                                        <td className="p-3 text-sm">{new Date(swap.createdAt).toLocaleDateString()}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 const AnnouncementsView = () => (
     <div>

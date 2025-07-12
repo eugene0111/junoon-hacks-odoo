@@ -8,10 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 
-const dummyUserId = '6871ff9b9a91d889120fa062';
+const dummyUserId = '687201074da45e0e755581dd';
 
 
-const pythonScriptPath = path.join(__dirname, '..', 'backend', 'ai', 'ai_matcher.py');
+const pythonScriptPath = path.join(__dirname, '../../..', 'backend', 'ai', 'ai_matcher.py');
 
  
 const command = `python "${pythonScriptPath}" ${dummyUserId}`;
