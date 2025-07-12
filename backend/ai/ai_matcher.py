@@ -5,7 +5,6 @@ import requests
 from dotenv import load_dotenv
 import database as db
 
-# --- Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 load_dotenv()
 
@@ -38,7 +37,7 @@ def get_similarity_scores(source_sentence, sentences_to_compare):
             }
         )
         response.raise_for_status()
-        return response.json()  # Should return a list of similarity scores
+        return response.json()
     except requests.exceptions.RequestException as e:
         logging.error(f"Error calling Hugging Face API: {e}")
         return None
@@ -50,7 +49,6 @@ def find_and_save_matches_for_user(target_user, all_public_users):
 
     target_wanted_text = ", ".join(target_user.get('skillsWanted', []) or ["nothing"])
 
-    # Exclude self from comparison
     other_users = [user for user in all_public_users if str(user['_id']) != str(target_user['_id'])]
     offered_texts = [", ".join(user.get('skillsOffered', []) or ["nothing"]) for user in other_users]
 
@@ -74,7 +72,6 @@ def find_and_save_matches_for_user(target_user, all_public_users):
     db.save_suggestions(str(target_user['_id']), top_matches)
 
 
-# --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         logging.error("Usage: python ai_matcher.py <target_user_id>")
