@@ -44,7 +44,7 @@ const AdminDashboardPage = () => {
                 // Fetching both users and swaps
                 const [usersRes, swapsRes] = await Promise.all([
                     axios.get('http://localhost:3000/api/users', config),
-                    axios.get('http://localhost:3000/api/swaps', config)
+                    axios.get('http://localhost:3000/api/swaps/all', config)
                 ]);
 
                 if (usersRes.data && usersRes.data.success) {

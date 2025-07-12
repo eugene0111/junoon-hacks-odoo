@@ -3,6 +3,27 @@ const router = express.Router();
 const { Swap, Post, User } = require('../db');
 const { protect } = require('../middleware/auth');
 
+router.get('/all', protect, async (req, res) => {
+    try {
+        const swaps = await Swap.find({}) // The only change is removing the filter
+            .populate('post', 'title skillOffered skillWanted')
+            .populate('requester', 'firstName lastName profilePhoto')
+            .populate('provider', 'firstName lastName profilePhoto')
+            .sort('-createdAt');
+
+        res.json({
+            success: true,
+            count: swaps.length,
+            data: swaps
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: 'Server error while fetching all swaps'
+        });
+    }
+});
+
 router.get('/', protect, async (req, res) => {
   try {
     const swaps = await Swap.find({
