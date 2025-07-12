@@ -1,4 +1,4 @@
-import React, { useState, Fragment, useEffect } from 'react';
+import React, { useState, Fragment, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, Loader2, AlertTriangle, Menu, X, Search, CheckCircle, Eye } from 'lucide-react';
@@ -8,20 +8,45 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 const getAuthToken = () => localStorage.getItem('token');
 
 const PlatformActivityChart = ({ users, swaps }) => {
-    const data = [
-        { name: 'Jan', users: 12, swaps: 2 }, { name: 'Feb', users: 19, swaps: 3 },
-        { name: 'Mar', users: 22, swaps: 1 }, { name: 'Apr', users: 25, swaps: 5 },
-        { name: 'May', users: 21, swaps: 4 }, { name: 'Jun', users: 27, swaps: 7 },
-        { name: 'Jul', users: users.length, swaps: swaps.filter(s => s.status === 'accepted').length },
-    ];
+    const chartData = useMemo(() => {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const currentYear = new Date().getFullYear();
+
+        const monthlyData = monthNames.map(name => ({ name, users: 0, swaps: 0 }));
+
+        users.forEach(user => {
+            const date = new Date(user.createdAt);
+            if (date.getFullYear() === currentYear) {
+                const monthIndex = date.getMonth();
+                monthlyData[monthIndex].users += 1;
+            }
+        });
+
+        swaps.forEach(swap => {
+            const date = new Date(swap.createdAt);
+            if (date.getFullYear() === currentYear) {
+                const monthIndex = date.getMonth();
+                monthlyData[monthIndex].swaps += 1;
+            }
+        });
+
+        for (let i = 1; i < monthlyData.length; i++) {
+            monthlyData[i].users += monthlyData[i-1].users;
+            monthlyData[i].swaps += monthlyData[i-1].swaps;
+        }
+
+        const currentMonthIndex = new Date().getMonth();
+        return monthlyData.slice(0, currentMonthIndex + 1);
+
+    }, [users, swaps]); 
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
           return (
             <div className="p-3 bg-white border border-slate-300 rounded-lg shadow-lg">
               <p className="font-bold text-slate-800">{`Month: ${label}`}</p>
-              <p className="text-sm text-blue-600">{`New Users: ${payload[0].value}`}</p>
-              <p className="text-sm text-emerald-600">{`Active Swaps: ${payload[1].value}`}</p>
+              <p className="text-sm text-blue-600">{`Total Users: ${payload[0].value}`}</p>
+              <p className="text-sm text-emerald-600">{`Total Swaps: ${payload[1].value}`}</p>
             </div>
           );
         }
@@ -30,11 +55,11 @@ const PlatformActivityChart = ({ users, swaps }) => {
 
     return (
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4">Platform Activity</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4">Platform Activity (Cumulative)</h3>
             <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                        data={data}
+                        data={chartData} 
                         margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                     >
                         <defs>
@@ -49,11 +74,11 @@ const PlatformActivityChart = ({ users, swaps }) => {
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
-                        <YAxis stroke="#6b7280" fontSize={12} />
+                        <YAxis stroke="#6b7280" fontSize={12} allowDecimals={false} />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend wrapperStyle={{fontSize: "14px"}} />
                         <Area type="monotone" dataKey="users" name="Total Users" stroke="#3b82f6" fill="url(#colorUsers)" strokeWidth={2} />
-                        <Area type="monotone" dataKey="swaps" name="Active Swaps" stroke="#10b981" fill="url(#colorSwaps)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="swaps" name="Total Swaps" stroke="#10b981" fill="url(#colorSwaps)" strokeWidth={2} />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
