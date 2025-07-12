@@ -42,3 +42,15 @@ def save_suggestions(requester_user_id, top_matches_list):
     update = {'$set': {'matches': match_object_ids}}
     logging.info(f"Saving {len(match_object_ids)} suggestions for requester {requester_user_id}.")
     suggestions_collection.update_one(query, update, upsert=True)
+
+def update_user(user_id, update_data):
+    """Updates a user document with new data."""
+    try:
+        query = {'_id': ObjectId(user_id)}
+        update = {'$set': update_data}
+        logging.info(f"Updating user {user_id} with data: {update_data}")
+        result = users_collection.update_one(query, update)
+        return result.modified_count > 0
+    except Exception as e:
+        logging.error(f"Error updating user {user_id}: {e}")
+        return False
