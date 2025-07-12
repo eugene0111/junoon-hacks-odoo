@@ -4,12 +4,12 @@ import logging
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
-import database as db # Using your existing database.py module
+import database as db 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 load_dotenv()
 
-# --- Hugging Face API Configuration (No Change) ---
+
 MODEL_ID = "madhurjindal/autonlp-Gibberish-Detector-492513457"
 API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
 HF_API_KEY = os.getenv("HF_TOKEN")
@@ -47,7 +47,7 @@ def analyze_and_update_profile(user):
     
     gibberish_field_count = sum(1 for value in fields_to_check.values() if check_text_quality(value))
     
-    # This dictionary will contain all the fields we want to update in the database
+    
     update_payload = {
         "profileAnalysis.lastAnalyzed": datetime.utcnow()
     }
@@ -64,13 +64,13 @@ def analyze_and_update_profile(user):
         update_payload["profileAnalysis.rating"] = "Good"
         update_payload["profileAnalysis.recommendation"] = "Profile text appears to be legitimate."
     
-    # Use the new update_user function from your database module
+   
     success = db.update_user(user_id, update_payload)
     
     if success:
         logging.info(f"Successfully saved analysis for user {user_id} to DB.")
     else:
-        # This error message will appear in your Node.js console
+        
         sys.stderr.write(f"DB update failed for {user_id}\n")
 
 if __name__ == "__main__":

@@ -164,13 +164,12 @@ def add_new_data():
     users_updated = 0
 
     for user in new_test_users:
-        # The query finds a document with the same _id
+        
         query = {'_id': user['_id']}
-        # The $set operator replaces the values of the fields with the new values
+      
         update = {'$set': user}
         
-        # upsert=True means: if a document with this _id exists, update it. 
-        # If it does NOT exist, insert it as a new document.
+        
         result = db.users_collection.update_one(query, update, upsert=True)
         
         if result.upserted_id is not None:
