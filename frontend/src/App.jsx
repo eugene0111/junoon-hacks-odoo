@@ -8,6 +8,7 @@ import AuthFrontend from "./pages/Auth";
 import PublicProfileView from "./pages/PublicProfileView";
 import LandingPage from "./pages/LandingPage";
 import HomeScreen from "./pages/HomeScreen";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 function App() {
   return (
@@ -19,6 +20,8 @@ function App() {
           <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/public-profile" element={<PublicProfileView />} />
           <Route path="/home-screen" element={<HomeScreen />} />
+          <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
+
         </Routes>
       </BrowserRouter>
     </>

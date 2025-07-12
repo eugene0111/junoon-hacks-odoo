@@ -33,7 +33,7 @@ const LandingPage = () => {
           </nav>
           <div className="flex items-center space-x-4">
             <button onClick={() => {navigate('/auth')}} className="hidden sm:block bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md">
-              Auth
+              Login
             </button>
             <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
           </div>
@@ -94,7 +94,7 @@ const LandingPage = () => {
                 <h2 className="text-3xl md:text-4xl font-extrabold text-white">Ready to Grow?</h2>
                 <p className="mt-4 text-blue-200 max-w-xl mx-auto">Join thousands of others who are leveling up their skills and making meaningful connections.</p>
                 <div className="mt-8">
-                    <Link to="/signup" className="bg-white text-blue-600 font-bold py-4 px-8 rounded-xl hover:bg-slate-100 transition-colors text-lg shadow-lg">
+                    <Link to="/auth" className="bg-white text-blue-600 font-bold py-4 px-8 rounded-xl hover:bg-slate-100 transition-colors text-lg shadow-lg">
                         Sign Up for Free
                     </Link>
                 </div>
