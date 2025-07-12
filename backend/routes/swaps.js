@@ -316,4 +316,51 @@ router.post('/:id/rate', protect, async (req, res) => {
   }
 });
 
+router.post('/request', protect, async (req, res) => {
+    const { providerId, mySkill, theirSkill, message } = req.body;
+    const requesterId = req.user.id; // from protect middleware
+
+    // --- Validation ---
+    if (!providerId || !mySkill || !theirSkill) {
+        return res.status(400).json({ success: false, message: 'Missing required fields for swap request.'});
+    }
+    if (providerId === requesterId) {
+        return res.status(400).json({ success: false, message: 'You cannot initiate a swap with yourself.' });
+    }
+
+    try {
+        // Check for an existing, similar pending request to prevent spam
+        const existingSwap = await Swap.findOne({
+            provider: providerId,
+            requester: requesterId,
+            status: 'pending',
+            'details.skillOfferedByRequester': mySkill,
+            'details.skillWantedByRequester': theirSkill,
+        });
+        if (existingSwap) {
+            return res.status(400).json({ success: false, message: 'You have already made this exact pending request.'});
+        }
+
+        // Create the new swap using the 'details' field we will add to the schema
+        const swap = await Swap.create({
+            requester: requesterId,
+            provider: providerId,
+            details: {
+                skillOfferedByRequester: mySkill,
+                skillWantedByRequester: theirSkill,
+            },
+            messages: [{
+                sender: requesterId,
+                message: message || `Hi! I'd like to swap my '${mySkill}' skill for your '${theirSkill}' skill.`
+            }]
+        });
+
+        res.status(201).json({ success: true, data: swap });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
 module.exports = router;

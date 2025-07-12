@@ -2,9 +2,12 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Assuming JWT_SECRET is loaded from your .env file
+// const JWT_SECRET = process.env.JWT_SECRET;
+
 mongoose.connect('mongodb+srv://eugenesam1105:YmqM9E8UpQQcsBup@cluster0.a6jb0eg.mongodb.net/')
     .then(() => { console.log('DB Connected') })
-    .catch(() => { console.log('DB not connected' )});
+    .catch((err) => { console.log('DB not connected', err )}); // It's helpful to log the error
 
 const UserSchema = new mongoose.Schema({
   firstName: {
@@ -99,7 +102,8 @@ UserSchema.pre('save', async function(next) {
 });
 
 UserSchema.methods.getSignedJwtToken = function() {
-  return jwt.sign({ id: this._id }, JWT_SECRET);
+  // IMPORTANT: Ensure JWT_SECRET is loaded into your environment variables
+  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 UserSchema.methods.matchPassword = async function(enteredPassword) {
@@ -173,11 +177,17 @@ PostSchema.pre(/^find/, function(next) {
   next();
 });
 
+// --- UPDATED SwapSchema ---
 const SwapSchema = new mongoose.Schema({
   post: {
     type: mongoose.Schema.ObjectId,
     ref: 'Post',
-    required: true
+    required: false // CHANGED: A swap is no longer required to be linked to a post.
+  },
+  // NEW: This field holds the details for direct user-to-user swaps.
+  details: {
+      skillOfferedByRequester: String,
+      skillWantedByRequester: String,
   },
   requester: {
     type: mongoose.Schema.ObjectId,
