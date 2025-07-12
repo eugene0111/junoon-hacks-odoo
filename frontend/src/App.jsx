@@ -17,11 +17,10 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthFrontend />} />
-          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/users" element={<UserProfile />} />
           <Route path="/public-profile" element={<PublicProfileView />} />
           <Route path="/home-screen" element={<HomeScreen />} />
           <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
-
         </Routes>
       </BrowserRouter>
     </>
