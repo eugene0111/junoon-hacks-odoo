@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Users, Repeat, ShieldCheck, Zap, MessageSquare, Moon, Sun } from 'lucide-react';
 
 const LandingPage = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isDarkMode) {
@@ -19,7 +20,6 @@ const LandingPage = () => {
     setIsDarkMode(prevMode => !prevMode);
   };
 
-
   return (
     <div className="bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-200 antialiased">
       <header className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg z-50 border-b border-slate-200 dark:border-slate-800">
@@ -32,10 +32,9 @@ const LandingPage = () => {
             <a href="#how-it-works" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-500 transition-colors">How It Works</a>
           </nav>
           <div className="flex items-center space-x-4">
-            <Link to="/login" className="text-slate-600 dark:text-slate-300 font-semibold hover:text-blue-600 dark:hover:text-blue-500 transition-colors">Login</Link>
-            <Link to="/signup" className="hidden sm:block bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md">
-              Sign Up
-            </Link>
+            <button onClick={() => {navigate('/auth')}} className="hidden sm:block bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md">
+              Auth
+            </button>
             <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
           </div>
         </div>
