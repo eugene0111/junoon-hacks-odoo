@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, Mail, Lock, User, MapPin, Globe, Phone, ArrowLeft, CheckCircle } from 'lucide-react';
 import axios from "axios";
+import { useNavigate } from 'react-router-dom';
 
 const InputField = ({ icon: Icon, ...props }) => (
   <div className="relative">
@@ -31,6 +32,7 @@ const AuthFrontend = () => {
     email: '',
     password: ''
   });
+  const navigate = useNavigate();
 
   const availableSkills = [
     'Web Development', 'Mobile Development', 'UI/UX Design', 'Data Science',
@@ -84,7 +86,7 @@ const AuthFrontend = () => {
     const response = await axios.post(`http://localhost:3000/api/auth/login`, loginData);
     const token = response.data.token;
     localStorage.setItem("token", token);
-    alert("Signed in");
+    navigate('/user-profile');
   };
 
   if (!isLogin && signupStep === 2) {
