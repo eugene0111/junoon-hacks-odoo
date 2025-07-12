@@ -239,9 +239,11 @@ const SuggestionSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Post = mongoose.model('Post', PostSchema);
 const Swap = mongoose.model('Swap', SwapSchema);
+const Suggestion = mongoose.model('Suggestion', SuggestionSchema);
 
 module.exports = {
     User,
     Post,
-    Swap
+    Swap,
+    Suggestion
 }

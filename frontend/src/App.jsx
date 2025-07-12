@@ -4,15 +4,19 @@ import {
   Routes,
 } from "react-router-dom";
 import UserProfile from "./pages/UserProfile";
-import HomeScreen from "./pages/HomeScreen";
+import AuthFrontend from "./pages/Auth";
+import PublicProfileView from "./pages/PublicProfileView";
+import LandingPage from "./pages/LandingPage";
 
 function App() {
   return (
     <>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<AuthFrontend />} />
           <Route path="/user-profile" element={<UserProfile />} />
-          <Route path="/home-screen" element={<HomeScreen />} />
+          <Route path="/public-profile" element={<PublicProfileView />} />
         </Routes>
       </BrowserRouter>
     </>

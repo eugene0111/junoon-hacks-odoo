@@ -12,14 +12,16 @@ router.post('/register', [
   body('password', 'Password must be 6 or more characters').isLength({ min: 6 }),
   body('location', 'Location is required').not().isEmpty(),
   body('country', 'Country is required').not().isEmpty(),
-  body('phoneNumber', 'Phone Number is required').not().isEmpty()
+  body('phoneNumber', 'Phone Number is required').not().isEmpty(),
+  body('skillsOffered').optional().isArray().withMessage('skillsOffered must be an array of strings'),
+  body('skillsWanted').optional().isArray().withMessage('skillsWanted must be an array of strings')
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { firstName, lastName, email, password, location, country, phoneNumber } = req.body;
+  const { firstName, lastName, email, password, location, country, phoneNumber, skillsOffered, skillsWanted } = req.body;
 
   try {
     let user = await User.findOne({ email });
@@ -37,7 +39,9 @@ router.post('/register', [
       password,
       location,
       country,
-      phoneNumber
+      phoneNumber,
+      skillsOffered,
+      skillsWanted
     });
 
     const token = user.getSignedJwtToken();
@@ -51,7 +55,9 @@ router.post('/register', [
         lastName: user.lastName,
         email: user.email,
         location: user.location,
-        country: user.country
+        country: user.country,
+        skillsOffered: user.skillsOffered,
+        skillsWanted: user.skillsWanted
       }
     });
   } catch (err) {

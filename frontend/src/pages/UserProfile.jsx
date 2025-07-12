@@ -1,28 +1,60 @@
-import React, { useState } from 'react';
-import { Mail, Phone, Globe, Edit3, X, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, Phone, Globe, Edit3, X, Check, Loader2 } from 'lucide-react';
 
-// --- INITIAL DATA ---
-const initialUserData = {
-  firstName: 'Alex',
-  lastName: 'Doe',
-  email: 'alex.doe@example.com',
-  phoneNo: '123-456-7890',
-  country: 'New York, USA',
-  skillsOffered: ['Graphic Design', 'Video Editing', 'Photoshop', 'React', 'Tailwind CSS'],
-  skillsWanted: ['Python', 'JavaScript', 'Project Management', 'Figma'],
-  isAvailable: true,
-  profileVisibility: 'Public',
-  profilePhoto: 'https://i.pravatar.cc/150?u=a042581f4e29026704d'
+const getAuthToken = () => {
+  return localStorage.getItem('token'); 
 };
 
-// --- MAIN COMPONENT ---
-const UserProfilePage = () => {
+const UserProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [userData, setUserData] = useState(initialUserData);
-  const [editedData, setEditedData] = useState(initialUserData);
+  const [userData, setUserData] = useState(null);
+  const [editedData, setEditedData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchMyProfile = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        setError("You are not logged in.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:3000/api/auth/me', { 
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Failed to fetch your profile.');
+        }
+
+        const fetchedUser = {
+            ...result.data,
+            isAvailable: result.data.availability === 'available'
+        };
+        
+        setUserData(fetchedUser);
+        setEditedData(fetchedUser); 
+
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyProfile();
+  }, []);
 
   const handleEdit = () => {
-    setEditedData(userData);
+    setEditedData(userData); 
     setIsEditing(true);
   };
 
@@ -30,11 +62,53 @@ const UserProfilePage = () => {
     setIsEditing(false);
   };
 
-  const handleSave = () => {
-    setUserData(editedData);
-    setIsEditing(false);
-    console.log("Saving data:", editedData);
-    // API call would go here
+  const handleSave = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      alert("Session expired. Please log in again.");
+      return;
+    }
+
+    try {
+      const payload = {
+          firstName: editedData.firstName,
+          lastName: editedData.lastName,
+          location: editedData.location,
+          country: editedData.country,
+          skillsOffered: editedData.skillsOffered,
+          skillsWanted: editedData.skillsWanted,
+          profileVisibility: editedData.profileVisibility,
+          availability: editedData.isAvailable ? 'available' : 'offline'
+      };
+        
+      const response = await fetch('http://localhost:3000/api/users/profile', {
+          method: 'PUT',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Failed to save profile.');
+      }
+
+      const updatedUser = {
+          ...result.data,
+          isAvailable: result.data.availability === 'available'
+      };
+
+      setUserData(updatedUser);
+      setIsEditing(false);
+      alert("Profile updated successfully!");
+
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+      console.error("Failed to save profile:", err);
+    }
   };
 
   const handleChange = (e) => {
@@ -44,6 +118,7 @@ const UserProfilePage = () => {
 
   const handleSkillChange = (e, listName) => {
     if (e.key === 'Enter' && e.target.value.trim()) {
+      e.preventDefault();
       const newSkill = e.target.value.trim();
       if (!editedData[listName].includes(newSkill)) {
         setEditedData(prev => ({
@@ -62,29 +137,37 @@ const UserProfilePage = () => {
     }));
   };
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-100"><Loader2 className="w-12 h-12 animate-spin text-blue-600"/></div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-100 text-red-500 font-semibold text-center p-4">Error: {error}</div>;
+  }
+  
+  if (!userData) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-100">Could not load user profile.</div>;
+  }
+
   return (
     <div className="bg-slate-100 font-sans antialiased">
       <div className="container mx-auto p-4 md:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* --- LEFT COLUMN (PROFILE & STATUS) --- */}
           <div className="lg:col-span-1 space-y-8">
             <ProfileCard user={userData} isEditing={isEditing} editedData={editedData} setEditedData={setEditedData} />
             <div className="bg-white p-6 rounded-2xl shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Profile Visibility</h3>
                 {isEditing ? (
                      <select name="profileVisibility" value={editedData.profileVisibility} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-lg focus:border-blue-500 outline-none transition bg-white">
-                        <option>Public</option>
-                        <option>Private</option>
-                        <option>Network Only</option>
-                    </select>
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                     </select>
                   ) : (
-                    <p className="text-gray-600 bg-gray-50 p-3 rounded-lg">{userData.profileVisibility}</p>
+                    <p className="text-gray-600 bg-gray-50 p-3 rounded-lg capitalize">{userData.profileVisibility}</p>
                   )}
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN (DETAILS & SKILLS) --- */}
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm">
               <div className="flex justify-between items-center mb-6">
@@ -102,8 +185,9 @@ const UserProfilePage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InfoField label="First Name" name="firstName" value={isEditing ? editedData.firstName : userData.firstName} isEditing={isEditing} onChange={handleChange} />
                 <InfoField label="Last Name" name="lastName" value={isEditing ? editedData.lastName : userData.lastName} isEditing={isEditing} onChange={handleChange} />
-                <InfoField label="Email Address" name="email" value={isEditing ? editedData.email : userData.email} isEditing={isEditing} onChange={handleChange} type="email"/>
-                <InfoField label="Phone Number" name="phoneNo" value={isEditing ? editedData.phoneNo : userData.phoneNo} isEditing={isEditing} onChange={handleChange} type="tel" />
+                <InfoField label="Email Address" name="email" value={userData.email} isEditing={false} type="email"/>
+                <InfoField label="Phone Number" name="phoneNumber" value={userData.phoneNumber} isEditing={false} type="tel" />
+                <InfoField label="City/State" name="location" value={isEditing ? editedData.location : userData.location} isEditing={isEditing} onChange={handleChange} />
                 <InfoField label="Country" name="country" value={isEditing ? editedData.country : userData.country} isEditing={isEditing} onChange={handleChange} />
               </div>
             </div>
@@ -113,19 +197,16 @@ const UserProfilePage = () => {
                 <SkillField label="Skills Wanted" skills={isEditing ? editedData.skillsWanted : userData.skillsWanted} listName="skillsWanted" isEditing={isEditing} onKeyDown={handleSkillChange} onRemove={removeSkill} color="purple"/>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
 };
 
-// --- CHILD COMPONENTS ---
-
 const ProfileCard = ({ user, isEditing, editedData, setEditedData }) => (
     <div className="bg-white p-8 rounded-2xl shadow-sm text-center">
         <div className="relative inline-block mb-4">
-            <img src={user.profilePhoto} alt="Profile" className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" />
+            <img src={user.profilePhoto || `https://i.pravatar.cc/150?u=${user.email}`} alt="Profile" className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" />
             {isEditing && (
                  <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-transform duration-200 hover:scale-110">
                     <Edit3 size={16} />
@@ -137,8 +218,8 @@ const ProfileCard = ({ user, isEditing, editedData, setEditedData }) => (
 
         <div className="mt-6 space-y-3 text-left">
             <a href={`mailto:${user.email}`} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"><Mail size={18} className="mr-3 text-gray-400"/> {user.email}</a>
-            <a href={`tel:${user.phoneNo}`} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"><Phone size={18} className="mr-3 text-gray-400"/> {user.phoneNo}</a>
-            <p className="flex items-center text-gray-600"><Globe size={18} className="mr-3 text-gray-400"/> {user.country}</p>
+            <a href={`tel:${user.phoneNumber}`} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"><Phone size={18} className="mr-3 text-gray-400"/> {user.phoneNumber}</a>
+            <p className="flex items-center text-gray-600"><Globe size={18} className="mr-3 text-gray-400"/> {user.location}, {user.country}</p>
         </div>
 
         <div className="mt-8">
@@ -160,7 +241,8 @@ const InfoField = ({ label, name, value, isEditing, onChange, type = "text" }) =
         {isEditing ? (
             <input 
                 type={type} name={name} value={value} onChange={onChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed" 
+                disabled={!onChange} 
             />
         ) : (
             <p className="w-full px-4 py-2 text-gray-800 bg-gray-50 rounded-lg">{value || '-'}</p>
@@ -179,7 +261,7 @@ const SkillField = ({ label, skills, listName, isEditing, onKeyDown, onRemove, c
         <div className="bg-white p-6 rounded-2xl shadow-sm">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">{label}</h3>
             <div className="flex flex-wrap gap-2">
-                {skills.map(skill => (
+                {(skills || []).map(skill => (
                     <div key={skill} className={`flex items-center rounded-full px-4 py-1.5 text-sm font-medium ${selectedColor.bg} ${selectedColor.text}`}>
                         <span>{skill}</span>
                         {isEditing && (
@@ -202,4 +284,4 @@ const SkillField = ({ label, skills, listName, isEditing, onKeyDown, onRemove, c
     );
 };
 
-export default UserProfilePage;
+export default UserProfile;
