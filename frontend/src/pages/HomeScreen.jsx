@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from "axios";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
+// A helper to get the auth token, assuming it's in localStorage
 const getAuthToken = () => localStorage.getItem('token');
 
 const AvailabilityDropdown = () => {
@@ -43,9 +44,22 @@ const UserCard = ({ user }) => (
     </Link>
 );
 
-const RequestCard = ({ swap, currentUserId }) => {
+// --- UPDATED RequestCard component to call the onUpdateStatus function ---
+const RequestCard = ({ swap, currentUserId, onUpdateStatus }) => {
+    // State to handle loading feedback on a per-card basis
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const handleAction = async (status) => {
+        setIsUpdating(true);
+        // The actual API call is handled by the parent component
+        await onUpdateStatus(swap._id, status);
+        // No need to set isUpdating back to false, as the parent's state change will re-render this card
+    };
+
+    // Determine who the 'other user' is in this swap
     const otherUser = swap.requester._id === currentUserId ? swap.provider : swap.requester;
-    const role = swap.requester._id === currentUserId ? "Outgoing" : "Incoming";
+    // Determine if the request is 'Incoming' (I am the provider) or 'Outgoing' (I am the requester)
+    const role = swap.provider._id === currentUserId ? "Incoming" : "Outgoing";
 
     const statusInfo = {
         pending: { badge: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
@@ -67,23 +81,29 @@ const RequestCard = ({ swap, currentUserId }) => {
             <h3 className="text-2xl font-bold text-gray-800 mb-4">{otherUser.firstName} {otherUser.lastName}</h3>
             {swap.post ? (
                 <>
-                    <div className="flex items-center text-sm mb-3"><span className="text-gray-500 w-28 font-medium">I Offer:</span><div className="flex flex-wrap gap-2"><span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">{swap.post.skillOffered}</span></div></div>
-                    <div className="flex items-center text-sm"><span className="text-gray-500 w-28 font-medium">I Want:</span><div className="flex flex-wrap gap-2"><span className="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">{swap.post.skillWanted}</span></div></div>
+                    <div className="flex items-center text-sm mb-3"><span className="text-gray-500 w-28 font-medium">Post Skill Offer:</span><div className="flex flex-wrap gap-2"><span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">{swap.post.skillOffered}</span></div></div>
+                    <div className="flex items-center text-sm"><span className="text-gray-500 w-28 font-medium">Post Skill Want:</span><div className="flex flex-wrap gap-2"><span className="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">{swap.post.skillWanted}</span></div></div>
                 </>
-            ) : (
-                <p className="text-sm text-gray-500">Direct user-to-user request.</p>
+            ) : ( 
+                swap.details &&
+                <>
+                    <div className="flex items-center text-sm mb-3"><span className="text-gray-500 w-28 font-medium">They Offer:</span><div className="flex flex-wrap gap-2"><span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">{swap.details.skillOfferedByRequester}</span></div></div>
+                    <div className="flex items-center text-sm"><span className="text-gray-500 w-28 font-medium">They Want:</span><div className="flex flex-wrap gap-2"><span className="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">{swap.details.skillWantedByRequester}</span></div></div>
+                </>
             )}
           </div>
         </div>
-        <div className="text-right flex flex-col items-end">
+        <div className="text-right flex flex-col items-end w-48">
             <span className={`px-3 py-1 text-sm rounded-full font-semibold ${currentStatus.badge}`}>{currentStatus.text}</span>
             <span className={`mt-2 text-xs font-bold ${role === "Incoming" ? "text-blue-600" : "text-purple-600"}`}>{role} Request</span>
+            {/* Show buttons only on pending, incoming requests */}
             {swap.status === 'pending' && role === 'Incoming' && (
                 <div className="flex items-center space-x-3 mt-4">
-                    <button className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Accept</button>
-                    <button className="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Reject</button>
+                    <button onClick={() => handleAction('accepted')} disabled={isUpdating} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400">Accept</button>
+                    <button onClick={() => handleAction('rejected')} disabled={isUpdating} className="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400">Reject</button>
                 </div>
             )}
+            {isUpdating && <Loader2 className="animate-spin mt-4 text-gray-500" />}
         </div>
       </div>
     );
@@ -107,7 +127,6 @@ const DiscoverView = () => {
                 }
             } catch (err) {
                 setError(err.message || "An unknown error occurred.");
-                console.error("Error fetching users:", err);
             } finally {
                 setLoading(false);
             }
@@ -124,6 +143,7 @@ const DiscoverView = () => {
     );
 };
 
+// --- UPDATED SwapRequestsView with status update logic ---
 const SwapRequestsView = ({ onUpdateCount }) => {
     const [swaps, setSwaps] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -138,49 +158,71 @@ const SwapRequestsView = ({ onUpdateCount }) => {
                 setLoading(false);
                 return;
             }
-
             try {
                 const [swapsRes, meRes] = await Promise.all([
                     axios.get('http://localhost:3000/api/swaps', { headers: { Authorization: `Bearer ${token}` } }),
                     axios.get('http://localhost:3000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
                 ]);
-                
                 if (swapsRes.data && swapsRes.data.success) {
                     setSwaps(swapsRes.data.data);
                     onUpdateCount(swapsRes.data.count);
-                } else {
-                    throw new Error('Failed to fetch swaps.');
-                }
-
+                } else { throw new Error('Failed to fetch swaps.'); }
                 if (meRes.data && meRes.data.success) {
                     setCurrentUser(meRes.data.data);
-                } else {
-                    throw new Error('Failed to identify current user.');
-                }
-
+                } else { throw new Error('Failed to identify current user.'); }
             } catch (err) {
                 setError(err.message || "An error occurred fetching swap data.");
-                console.error(err);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchSwapData();
     }, [onUpdateCount]);
+
+    // --- NEW: Function to handle status updates via API call ---
+    const handleUpdateStatus = async (swapId, newStatus) => {
+        const token = getAuthToken();
+        if (!token) {
+            alert("Authentication token not found. Please log in again.");
+            return;
+        }
+
+        try {
+            await axios.put(
+                `http://localhost:3000/api/swaps/${swapId}/status`,
+                { status: newStatus },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            // Update the state locally for an immediate UI change without a page refresh
+            setSwaps(currentSwaps =>
+                currentSwaps.map(swap =>
+                    swap._id === swapId ? { ...swap, status: newStatus } : swap
+                )
+            );
+            alert(`Swap has been ${newStatus}.`);
+        } catch (err) {
+            console.error("Failed to update swap status:", err);
+            alert(`Error: ${err.response?.data?.message || err.message}`);
+        }
+    };
 
     if (loading) { return <div className="flex justify-center items-center h-96"><Loader2 className="w-12 h-12 animate-spin text-blue-500"/></div>; }
     if (error) { return <div className="p-8 text-center text-red-500 font-semibold">{error}</div>; }
 
     return (
         <div className="p-8">
-            <div className="mb-8 flex justify-between items-center">
-                <div className="flex items-center space-x-4"><select className="border-gray-300 rounded-lg px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><option>Pending</option><option>Accepted</option><option>Rejected</option></select></div>
-                <div className="flex items-center space-x-2"><input type="text" placeholder="Search requests..." className="border-gray-300 rounded-lg px-4 py-2 w-80 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /><button className="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-700 font-semibold transition-colors">Search</button></div>
-            </div>
+            <div className="mb-8 flex justify-between items-center"><div className="flex items-center space-x-4"><select className="border-gray-300 rounded-lg px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><option>Pending</option><option>Accepted</option><option>Rejected</option></select></div><div className="flex items-center space-x-2"><input type="text" placeholder="Search requests..." className="border-gray-300 rounded-lg px-4 py-2 w-80 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /><button className="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-700 font-semibold transition-colors">Search</button></div></div>
             <div className="space-y-6">
-                {swaps.length > 0 ? (
-                    swaps.map(swap => (<RequestCard key={swap._id} swap={swap} currentUserId={currentUser._id} />))
+                {swaps.length > 0 && currentUser ? (
+                    swaps.map(swap => (
+                        <RequestCard 
+                            key={swap._id} 
+                            swap={swap} 
+                            currentUserId={currentUser._id}
+                            onUpdateStatus={handleUpdateStatus} 
+                        />
+                    ))
                 ) : (
                     <p className="text-center text-gray-500 py-10">You have no swap requests.</p>
                 )}
@@ -190,73 +232,9 @@ const SwapRequestsView = ({ onUpdateCount }) => {
     );
 };
 
-const Header = () => {
-    const navigate = useNavigate();
-    return (
-        <header className="bg-white py-4 px-8 flex justify-between items-center border-b">
-            <div className='flex items-center space-x-4'>
-                <h1 className="text-2xl font-bold text-gray-800">SkillSwap</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-                <button onClick={() => { navigate('/user-profile') }} className="text-gray-600 hover:text-gray-800 border px-4 py-2 rounded-lg">
-                    My Profile
-                </button>
-            </div>
-        </header>
-    );
-};
 
-const Footer = () => (
-    <footer className="mt-auto">
-        <div className="bg-blue-900">
-            <div className="max-w-7xl mx-auto py-12 px-8">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-                    <div className="md:col-span-2">
-                        <h2 className="text-xl font-bold text-white mb-4">SkillSwap</h2>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-white mb-4">Platform</h3>
-                        <ul className="space-y-2">
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Browse skills</a></li>
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Success stories</a></li>
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Community guidelines</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-white mb-4">Support</h3>
-                        <ul className="space-y-2">
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Help center</a></li>
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Contact us</a></li>
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Report an issue</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-white mb-4">Company</h3>
-                        <ul className="space-y-2">
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">About us</a></li>
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Careers</a></li>
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Privacy policy</a></li>
-                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Terms of service</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Bottom footer section with dark slate background */}
-        <div className="bg-slate-900 text-slate-400">
-            <div className="max-w-7xl mx-auto py-6 px-8 text-center">
-                <p>© {new Date().getFullYear()} SkillSwap. All rights reserved.</p>
-                <div className="mt-4 flex justify-center space-x-6">
-                    <Link to="/about" className="hover:text-white transition-colors">About</Link>
-                    <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
-                    <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-                </div>
-            </div>
-        </div>
-    </footer>
-);
-
+const Header = () => (<header className="bg-white py-4 px-8 flex justify-between items-center border-b"><div className='flex items-center space-x-4'><h1 className="text-2xl font-bold text-gray-800">SkillSwap</h1></div><div className="flex items-center space-x-4"><Link to="/profile"><button className="text-gray-600 hover:text-gray-800 border px-4 py-2 rounded-lg">My Profile</button></Link></div></header>);
+const Footer = () => (<footer className="mt-auto"><div className="bg-blue-900"><div className="max-w-7xl mx-auto py-12 px-8"><div className="grid grid-cols-1 md:grid-cols-5 gap-8"><div className="md:col-span-2"><h2 className="text-xl font-bold text-white mb-4">SkillSwap</h2></div><div><h3 className="font-semibold text-white mb-4">Platform</h3><ul className="space-y-2"><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Browse skills</a></li><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Success stories</a></li><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Community guidelines</a></li></ul></div><div><h3 className="font-semibold text-white mb-4">Support</h3><ul className="space-y-2"><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Help center</a></li><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Contact us</a></li><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Report an issue</a></li></ul></div><div><h3 className="font-semibold text-white mb-4">Company</h3><ul className="space-y-2"><li><a href="#" className="text-slate-300 hover:text-white transition-colors">About us</a></li><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Careers</a></li><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Privacy policy</a></li><li><a href="#" className="text-slate-300 hover:text-white transition-colors">Terms of service</a></li></ul></div></div></div></div><div className="bg-slate-900 text-slate-400"><div className="max-w-7xl mx-auto py-6 px-8 text-center"><p>© {new Date().getFullYear()} SkillSwap. All rights reserved.</p><div className="mt-4 flex justify-center space-x-6"><Link to="/about" className="hover:text-white transition-colors">About</Link><Link to="/contact" className="hover:text-white transition-colors">Contact</Link><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></div></div></div></footer>);
 
 const DiscoverScreen = () => {
     const [activeTab, setActiveTab] = useState('Discover');
