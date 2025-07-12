@@ -64,7 +64,7 @@ const Sidebar = ({ activeView, setActiveView }) => (
             <SidebarItem icon={<Download />} label="Reports" view="reports" activeView={activeView} onClick={setActiveView} />
         </nav>
         <div className="p-4 border-t border-slate-200">
-             <Link to="/profile" className="text-slate-600 hover:text-blue-600 font-semibold">Back to Site</Link>
+             <Link to="/" className="text-slate-600 hover:text-blue-600 font-semibold">Back to Site</Link>
         </div>
     </aside>
 );
