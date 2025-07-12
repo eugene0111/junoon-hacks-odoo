@@ -203,13 +203,13 @@ const UserProfile = () => {
   );
 };
 
-// --- CORRECTED ProfileCard component ---
+
 const ProfileCard = ({ user, isEditing, editedData, setEditedData }) => (
     <div className="bg-white p-8 rounded-2xl shadow-sm text-center">
         <p className="text-sm text-gray-500 mb-2">Profile</p>
 
         <div className="relative inline-block mb-4">
-            {/* This div will now ALWAYS show the initial */}
+            
             <div className="w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center border-4 border-white shadow-md">
                 <span className="text-5xl font-bold text-slate-500">
                     {user.firstName ? user.firstName.charAt(0).toUpperCase() : '?'}

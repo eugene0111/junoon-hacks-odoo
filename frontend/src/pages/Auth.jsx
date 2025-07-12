@@ -83,7 +83,7 @@ const AuthFrontend = () => {
             [type]: [...prev[type], newSkill]
         }));
     }
-    setState(''); // Clear the input field
+    setState(''); 
   };
   
   const handleCustomSkillKeyDown = (e, type) => {
@@ -143,7 +143,7 @@ const AuthFrontend = () => {
           </div>
 
           <div className="space-y-8">
-            {/* Skills Offered Section */}
+            
             <div>
               <h3 className="text-lg font-semibold text-gray-700 mb-4">Skills I Can Offer</h3>
               <div className="flex flex-wrap gap-2">
@@ -177,7 +177,7 @@ const AuthFrontend = () => {
               </div>
             </div>
 
-            {/* Skills Wanted Section */}
+            
             <div>
               <h3 className="text-lg font-semibold text-gray-700 mb-4">Skills I Want to Learn</h3>
               <div className="flex flex-wrap gap-2">

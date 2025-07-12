@@ -3,7 +3,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import { Loader2, Zap } from "lucide-react";
 
-// A helper function to get the auth token, assuming it's in localStorage
+
 const getAuthToken = () => localStorage.getItem("token");
 
 const AvailabilityDropdown = () => {

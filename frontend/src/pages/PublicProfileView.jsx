@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Mail, Phone, Globe, Send, X, Star, MessageSquare, Loader2 } from 'lucide-react';
 
-// A helper function to get the auth token. In a real app, this comes from an Auth Context.
+
 const getAuthToken = () => localStorage.getItem('token');
 
 const PublicProfileView = () => {
-    // Get the user ID from the URL, e.g., /users/6871fdadbcd5504ea4e32627
+   
     const { id: profileUserId } = useParams(); 
     
-    // State for both the profile user and the logged-in user
+    
     const [profileUser, setProfileUser] = useState(null);
     const [loggedInUser, setLoggedInUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -17,7 +17,6 @@ const PublicProfileView = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // --- FETCH DATA ON PAGE LOAD ---
     useEffect(() => {
         const fetchData = async () => {
             if (!profileUserId) {
@@ -30,19 +29,19 @@ const PublicProfileView = () => {
                 setLoading(true);
                 const token = getAuthToken();
 
-                // Fetch both the profile user and the logged-in user's data concurrently
+                
                 const [profileRes, meRes] = await Promise.all([
                     fetch(`http://localhost:3000/api/users/${profileUserId}`),
                     token ? fetch('http://localhost:3000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } }) : Promise.resolve(null)
                 ]);
 
-                // --- Handle Profile User data ---
+               
                 if (!profileRes.ok) throw new Error('Could not find user profile.');
                 const profileResult = await profileRes.json();
                 if (!profileResult.success) throw new Error(profileResult.message);
                 setProfileUser(profileResult.data);
                 
-                // --- Handle Logged-in User data (if a token exists) ---
+              
                 if (meRes) {
                     if (meRes.ok) {
                         const meResult = await meRes.json();
@@ -59,9 +58,9 @@ const PublicProfileView = () => {
         };
 
         fetchData();
-    }, [profileUserId]); // Re-run if the ID in the URL changes
+    }, [profileUserId]); 
 
-    // --- HANDLE SWAP REQUEST SUBMISSION ---
+   
     const handleSubmitRequest = async (requestData) => {
         const token = getAuthToken();
         if (!token) {
@@ -70,7 +69,7 @@ const PublicProfileView = () => {
         }
 
         try {
-            // We will create this new, more suitable `/api/swaps/request` route
+           
             const response = await fetch('http://localhost:3000/api/swaps/request', { 
                 method: 'POST',
                 headers: {
@@ -78,7 +77,7 @@ const PublicProfileView = () => {
                     'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    providerId: profileUser._id, // The ID of the user whose profile we are on
+                    providerId: profileUser._id, 
                     ...requestData
                 })
             });
@@ -96,7 +95,7 @@ const PublicProfileView = () => {
         }
     };
 
-    // --- RENDER LOADING/ERROR/DATA STATES ---
+    
     if (loading) {
         return <div className="min-h-screen flex items-center justify-center bg-slate-100"><Loader2 className="w-12 h-12 animate-spin text-blue-600"/></div>;
     }
@@ -124,7 +123,7 @@ const PublicProfileView = () => {
                             </p>
                         </div>
                     </div>
-                    {/* Only show button if logged in AND not viewing your own profile */}
+                   
                     {loggedInUser && loggedInUser._id !== profileUser._id && (
                         <button 
                             onClick={() => setIsModalOpen(true)}
@@ -157,7 +156,7 @@ const PublicProfileView = () => {
         </div>
       </div>
       
-      {/* Conditionally render modal only when we have the necessary data */}
+      
       {loggedInUser && profileUser && (
         <RequestModal 
             isOpen={isModalOpen}
@@ -172,7 +171,6 @@ const PublicProfileView = () => {
 };
 
 
-// --- Child Components (No changes needed) ---
 const SkillList = ({ title, skills, color }) => {
     const colorVariants = { blue: { bg: 'bg-blue-100', text: 'text-blue-800' }, purple: { bg: 'bg-purple-100', text: 'text-purple-800' } };
     const selectedColor = colorVariants[color];
