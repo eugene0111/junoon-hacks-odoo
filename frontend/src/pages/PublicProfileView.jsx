@@ -42,7 +42,7 @@ const PublicProfileView = () => {
         <div className="container mx-auto p-4 md:p-8">
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm">
                 
-                {/* --- Profile Header --- */}
+                
                 <div className="flex flex-col sm:flex-row items-center gap-6 mb-8 pb-8 border-b border-slate-200">
                     <img src={profileUser.profilePhoto} alt="Profile" className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-lg" />
                     <div className="flex-1 text-center sm:text-left">
@@ -63,24 +63,23 @@ const PublicProfileView = () => {
                     </button>
                 </div>
 
-                {/* --- Skills & Feedback Grid --- */}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-6">
                         <SkillList title="Skills Offered" skills={profileUser.skillsOffered} color="blue" />
                         <SkillList title="Skills Wanted" skills={profileUser.skillsWanted} color="purple" />
                     </div>
+                    {/* --- UPDATED RATING SECTION --- */}
                     <div className="bg-slate-50 p-6 rounded-xl">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">Rating and Feedback</h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center">
-                                <span className="font-semibold w-28">Overall Rating</span>
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">User Rating</h3>
+                        <div className="space-y-2">
+                             <div className="flex items-center">
                                 <div className="flex items-center gap-1 text-amber-400">
-                                    <Star size={20} fill="currentColor"/><Star size={20} fill="currentColor"/><Star size={20} fill="currentColor"/><Star size={20} fill="currentColor"/><Star size={20} className="text-slate-300" fill="currentColor"/>
+                                    <Star size={22} fill="currentColor"/><Star size={22} fill="currentColor"/><Star size={22} fill="currentColor"/><Star size={22} fill="currentColor"/><Star size={22} className="text-slate-300" fill="currentColor"/>
                                 </div>
-                                <span className="ml-2 text-gray-600 font-medium">(4.0)</span>
+                                <span className="ml-3 text-2xl font-bold text-slate-700">4.0</span>
                             </div>
-                            <p className="text-gray-600 pt-2">"Marc was a great partner! Very communicative and delivered high-quality work on time."</p>
-                            <span className="text-sm font-semibold text-gray-500">- Jane Doe</span>
+                            <p className="text-sm text-slate-500">Overall rating based on 15 swaps.</p>
                         </div>
                     </div>
                 </div>
