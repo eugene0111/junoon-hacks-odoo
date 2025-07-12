@@ -203,16 +203,26 @@ const UserProfile = () => {
   );
 };
 
+// --- CORRECTED ProfileCard component ---
 const ProfileCard = ({ user, isEditing, editedData, setEditedData }) => (
     <div className="bg-white p-8 rounded-2xl shadow-sm text-center">
+        <p className="text-sm text-gray-500 mb-2">Profile</p>
+
         <div className="relative inline-block mb-4">
-            <img src={user.profilePhoto || `https://i.pravatar.cc/150?u=${user.email}`} alt="Profile" className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" />
+            {/* This div will now ALWAYS show the initial */}
+            <div className="w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center border-4 border-white shadow-md">
+                <span className="text-5xl font-bold text-slate-500">
+                    {user.firstName ? user.firstName.charAt(0).toUpperCase() : '?'}
+                </span>
+            </div>
+            
             {isEditing && (
                  <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-transform duration-200 hover:scale-110">
                     <Edit3 size={16} />
                  </button>
             )}
         </div>
+
         <h2 className="text-2xl font-bold text-gray-800">{user.firstName} {user.lastName}</h2>
         <p className="text-gray-500">Skill Sharer & Learner</p>
 
