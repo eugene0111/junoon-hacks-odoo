@@ -85,7 +85,7 @@ const AuthFrontend = () => {
     const response = await axios.post(`http://localhost:3000/api/auth/login`, loginData);
     const token = response.data.token;
     localStorage.setItem("token", token);
-    navigate('/user-profile');
+    navigate('/home-screen');
   };
 
   if (!isLogin && signupStep === 2) {

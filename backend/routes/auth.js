@@ -4,6 +4,7 @@ const { User } = require('../db');
 const { protect } = require('../middleware/auth');
 const { spawn } = require('child_process');
 const path = require('path');
+const { success } = require('zod');
 
 const router = express.Router();
 
@@ -120,6 +121,13 @@ router.post('/login', [
         success: false,
         message: 'Invalid credentials'
       });
+    }
+
+    if (user.banned) {
+      return res.status(401).json({
+        success: false,
+        message: 'You have been banned'
+      })
     }
 
     const token = user.getSignedJwtToken();
