@@ -3,9 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
-// A helper to get the auth token, assuming it's in localStorage
 const getAuthToken = () => localStorage.getItem('token');
-const navigate = useNavigate();
 
 const AvailabilityDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -192,16 +190,21 @@ const SwapRequestsView = ({ onUpdateCount }) => {
     );
 };
 
-const Header = () => (
-    <header className="bg-white py-4 px-8 flex justify-between items-center border-b">
-        <div className='flex items-center space-x-4'>
-            <h1 className="text-2xl font-bold text-gray-800">SkillSwap</h1>
-        </div>
-        <div className="flex items-center space-x-4">
-            <button onClick={() => {navigate('/user-profile')}} className="text-gray-600 hover:text-gray-800 border px-4 py-2 rounded-lg">My Profile</button>
-        </div>
-    </header>
-);
+const Header = () => {
+    const navigate = useNavigate();
+    return (
+        <header className="bg-white py-4 px-8 flex justify-between items-center border-b">
+            <div className='flex items-center space-x-4'>
+                <h1 className="text-2xl font-bold text-gray-800">SkillSwap</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+                <button onClick={() => { navigate('/user-profile') }} className="text-gray-600 hover:text-gray-800 border px-4 py-2 rounded-lg">
+                    My Profile
+                </button>
+            </div>
+        </header>
+    );
+};
 
 const Footer = () => (
     <footer className="mt-auto">
