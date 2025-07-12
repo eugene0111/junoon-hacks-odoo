@@ -44,9 +44,7 @@ const UserCard = ({ user }) => (
     </Link>
 );
 
-// --- CORRECTED RequestCard to handle real data from the backend ---
 const RequestCard = ({ swap, currentUserId }) => {
-    // Determine who the 'other user' is in this swap
     const otherUser = swap.requester._id === currentUserId ? swap.provider : swap.requester;
     const role = swap.requester._id === currentUserId ? "Outgoing" : "Incoming";
 
@@ -127,7 +125,6 @@ const DiscoverView = () => {
     );
 };
 
-// --- CORRECTED SwapRequestsView with data fetching and logic ---
 const SwapRequestsView = ({ onUpdateCount }) => {
     const [swaps, setSwaps] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -144,7 +141,6 @@ const SwapRequestsView = ({ onUpdateCount }) => {
             }
 
             try {
-                // Use Promise.all to fetch swaps and current user data simultaneously
                 const [swapsRes, meRes] = await Promise.all([
                     axios.get('http://localhost:3000/api/swaps', { headers: { Authorization: `Bearer ${token}` } }),
                     axios.get('http://localhost:3000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
@@ -152,7 +148,7 @@ const SwapRequestsView = ({ onUpdateCount }) => {
                 
                 if (swapsRes.data && swapsRes.data.success) {
                     setSwaps(swapsRes.data.data);
-                    onUpdateCount(swapsRes.data.count); // Update parent with the count
+                    onUpdateCount(swapsRes.data.count);
                 } else {
                     throw new Error('Failed to fetch swaps.');
                 }
@@ -196,13 +192,75 @@ const SwapRequestsView = ({ onUpdateCount }) => {
 };
 
 
-const Header = () => ( <header className="bg-white py-4 px-8 flex justify-between items-center border-b"><div className='flex items-center space-x-4'><h1 className="text-2xl font-bold text-gray-800">SkillSwap</h1><p className="text-sm text-gray-500 hidden md:block">Learn new skills by teaching what you know</p></div><div className="flex items-center space-x-4"><button className="text-gray-600 hover:text-gray-800 border px-4 py-2 rounded-lg">My Profile</button></div></header> );
-const Footer = () => ( <footer className="bg-white border-t mt-8 py-10 px-8"> <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-8"> <div className="md:col-span-2"> <h2 className="text-xl font-bold mb-4">SkillSwap</h2> <p className="text-gray-600 mb-4">Connect with fellow learners and exchange your skills to grow together in your career journey.</p> </div> <div> <h3 className="font-semibold text-gray-800 mb-4">Platform</h3> <ul className="space-y-2"> <li><a href="#" className="text-gray-600 hover:text-gray-800">Browse skills</a></li> <li><a href="#" className="text-gray-600 hover:text-gray-800">Success stories</a></li> <li><a href="#" className="text-gray-600 hover:text-gray-800">Community guidelines</a></li> </ul> </div> <div> <h3 className="font-semibold text-gray-800 mb-4">Support</h3> <ul className="space-y-2"> <li><a href="#" className="text-gray-600 hover:text-gray-800">Help center</a></li> <li><a href="#" className="text-gray-600 hover:text-gray-800">Contact us</a></li> <li><a href="#" className="text-gray-600 hover:text-gray-800">Report an issue</a></li> </ul> </div> <div> <h3 className="font-semibold text-gray-800 mb-4">Company</h3> <ul className="space-y-2"> <li><a href="#" className="text-gray-600 hover:text-gray-800">About us</a></li> <li><a href="#" className="text-gray-600 hover:text-gray-800">Careers</a></li> <li><a href="#" className="text-gray-600 hover:text-gray-800">Privacy policy</a></li> <li><a href="#" className="text-gray-600 hover:text-gray-800">Terms of service</a></li> </ul> </div> </div> <div className="max-w-7xl mx-auto mt-8 pt-8 border-t flex justify-between items-center text-sm text-gray-500"> <p>© 2024 SkillSwap. All rights reserved.</p> <p className="flex items-center">Trusted by 10,000+ learners</p> </div> </footer> );
+// --- UPDATED Header and Footer ---
+const Header = () => (
+    <header className="bg-white py-4 px-8 flex justify-between items-center border-b">
+        <div className='flex items-center space-x-4'>
+            <h1 className="text-2xl font-bold text-gray-800">SkillSwap</h1>
+        </div>
+        <div className="flex items-center space-x-4">
+            <button className="text-gray-600 hover:text-gray-800 border px-4 py-2 rounded-lg">My Profile</button>
+        </div>
+    </header>
+);
+
+const Footer = () => (
+    <footer className="mt-auto">
+        {/* Top footer section with blue background */}
+        <div className="bg-blue-900">
+            <div className="max-w-7xl mx-auto py-12 px-8">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+                    <div className="md:col-span-2">
+                        <h2 className="text-xl font-bold text-white mb-4">SkillSwap</h2>
+                        {/* Tagline removed */}
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-white mb-4">Platform</h3>
+                        <ul className="space-y-2">
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Browse skills</a></li>
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Success stories</a></li>
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Community guidelines</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-white mb-4">Support</h3>
+                        <ul className="space-y-2">
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Help center</a></li>
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Contact us</a></li>
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Report an issue</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-white mb-4">Company</h3>
+                        <ul className="space-y-2">
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">About us</a></li>
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Careers</a></li>
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Privacy policy</a></li>
+                            <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Terms of service</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Bottom footer section with dark slate background */}
+        <div className="bg-slate-900 text-slate-400">
+            <div className="max-w-7xl mx-auto py-6 px-8 text-center">
+                <p>© {new Date().getFullYear()} SkillSwap. All rights reserved.</p>
+                <div className="mt-4 flex justify-center space-x-6">
+                    <Link to="/about" className="hover:text-white transition-colors">About</Link>
+                    <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
+                    <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                </div>
+            </div>
+        </div>
+    </footer>
+);
 
 
 const DiscoverScreen = () => {
     const [activeTab, setActiveTab] = useState('Discover');
-    const [swapRequestCount, setSwapRequestCount] = useState(0); // State for the dynamic count
+    const [swapRequestCount, setSwapRequestCount] = useState(0);
 
     const renderContent = () => {
         switch (activeTab) {
@@ -213,21 +271,22 @@ const DiscoverScreen = () => {
     };
 
     return (
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-gray-50 min-h-screen flex flex-col">
             <Header />
-            <main className="max-w-7xl mx-auto">
-                <div className="px-8 pt-6 border-b bg-white">
-                    <div className="flex space-x-8">
-                        <button onClick={() => setActiveTab('Discover')} className={`pb-3 flex items-center space-x-2 ${activeTab === 'Discover' ? 'font-semibold text-gray-800 border-b-2 border-gray-800' : 'text-gray-500 hover:text-gray-800'}`}>
-                            <span>Discover</span>
-                        </button>
-                        <button onClick={() => setActiveTab('Swap Requests')} className={`pb-3 flex items-center space-x-2 ${activeTab === 'Swap Requests' ? 'font-semibold text-gray-800 border-b-2 border-gray-800' : 'text-gray-500 hover:text-gray-800'}`}>
-                            {/* Use the dynamic count */}
-                            <span>Swap Requests ({swapRequestCount})</span>
-                        </button>
+            <main className="flex-grow w-full">
+                <div className="max-w-7xl mx-auto">
+                    <div className="px-8 pt-6 border-b bg-white">
+                        <div className="flex space-x-8">
+                            <button onClick={() => setActiveTab('Discover')} className={`pb-3 flex items-center space-x-2 ${activeTab === 'Discover' ? 'font-semibold text-gray-800 border-b-2 border-gray-800' : 'text-gray-500 hover:text-gray-800'}`}>
+                                <span>Discover</span>
+                            </button>
+                            <button onClick={() => setActiveTab('Swap Requests')} className={`pb-3 flex items-center space-x-2 ${activeTab === 'Swap Requests' ? 'font-semibold text-gray-800 border-b-2 border-gray-800' : 'text-gray-500 hover:text-gray-800'}`}>
+                                <span>Swap Requests ({swapRequestCount})</span>
+                            </button>
+                        </div>
                     </div>
+                    {renderContent()}
                 </div>
-                {renderContent()}
             </main>
             <Footer />
         </div>
