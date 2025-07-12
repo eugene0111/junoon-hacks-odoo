@@ -3,6 +3,8 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import { Loader2, Zap } from "lucide-react";
 
+// All other components (Header, Footer, UserCard, RequestCard, etc.) remain unchanged.
+// I'm including them here for completeness.
 
 const getAuthToken = () => localStorage.getItem("token");
 
@@ -240,6 +242,7 @@ const RequestCard = ({ swap, currentUserId, onUpdateStatus }) => {
   const handleAction = async (status) => {
     setIsUpdating(true);
     await onUpdateStatus(swap._id, status);
+    setIsUpdating(false);
   };
   const otherUser =
     swap.requester._id === currentUserId ? swap.provider : swap.requester;
@@ -380,47 +383,14 @@ const Pagination = () => (
   </div>
 );
 
-const DiscoverView = () => {
-  const [suggestedUsers, setSuggestedUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const DiscoverView = ({
+  suggestedUsers,
+  loading,
+  error,
+  hasSearched,
+  findMyMatches,
+}) => {
   const [viewMode, setViewMode] = useState("grid");
-  const [hasSearched, setHasSearched] = useState(false);
-
-  const findMyMatches = async () => {
-    const token = getAuthToken();
-    if (!token) {
-      setError("You must be logged in to find personalized matches.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setHasSearched(true);
-    try {
-      const response = await axios.get(
-        `http://localhost:3000/api/suggestions`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (response.data && response.data.success) {
-        setSuggestedUsers(response.data.data);
-      } else {
-        throw new Error(
-          response.data.message || "Failed to fetch suggestions."
-        );
-      }
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "An unknown error occurred."
-      );
-      console.error("Error fetching suggestions:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const renderResults = () => {
     if (loading) {
@@ -557,49 +527,7 @@ const DiscoverView = () => {
   );
 };
 
-const SwapRequestsView = ({ onUpdateCount }) => {
-  const [swaps, setSwaps] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  useEffect(() => {
-    const fetchSwapData = async () => {
-      const token = getAuthToken();
-      if (!token) {
-        setError("Please log in to see your swap requests.");
-        setLoading(false);
-        return;
-      }
-      try {
-        const [swapsRes, meRes] = await Promise.all([
-          axios.get("http://localhost:3000/api/swaps", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:3000/api/auth/me", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-        if (swapsRes.data && swapsRes.data.success) {
-          setSwaps(swapsRes.data.data);
-          onUpdateCount(swapsRes.data.count);
-        } else {
-          throw new Error("Failed to fetch swaps.");
-        }
-        if (meRes.data && meRes.data.success) {
-          setCurrentUser(meRes.data.data);
-        } else {
-          throw new Error("Failed to identify current user.");
-        }
-      } catch (err) {
-        setError(err.message || "An error occurred fetching swap data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSwapData();
-  }, [onUpdateCount]);
-
+const SwapRequestsView = ({ swaps, setSwaps, currentUser, loading, error }) => {
   const handleUpdateStatus = async (swapId, newStatus) => {
     const token = getAuthToken();
     if (!token) {
@@ -818,19 +746,184 @@ const Footer = () => (
     </div>
   </footer>
 );
-
 const DiscoverScreen = () => {
   const [activeTab, setActiveTab] = useState("Discover");
+
+  // State for Discover tab data
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
+  const [discoverError, setDiscoverError] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // State for Swap Requests tab data
+  const [swaps, setSwaps] = useState([]);
   const [swapRequestCount, setSwapRequestCount] = useState(0);
+  const [swapsLoading, setSwapsLoading] = useState(false);
+  const [swapsError, setSwapsError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // --- MODIFICATION 1: Load data from localStorage on initial render ---
+  useEffect(() => {
+    // Try to load cached data when the component first mounts
+    try {
+      const cachedUsers = localStorage.getItem("cachedSuggestedUsers");
+      if (cachedUsers) {
+        setSuggestedUsers(JSON.parse(cachedUsers));
+      }
+
+      const cachedHasSearched = localStorage.getItem("hasSearched");
+      if (cachedHasSearched === 'true') {
+        setHasSearched(true);
+      }
+      
+      const cachedSwaps = localStorage.getItem("cachedSwaps");
+      if (cachedSwaps) {
+        setSwaps(JSON.parse(cachedSwaps));
+      }
+
+      const cachedCurrentUser = localStorage.getItem("cachedCurrentUser");
+      if (cachedCurrentUser) {
+        setCurrentUser(JSON.parse(cachedCurrentUser));
+      }
+      
+      const cachedCount = localStorage.getItem("swapRequestCount");
+      if (cachedCount) {
+        setSwapRequestCount(parseInt(cachedCount, 10));
+      }
+
+    } catch (error) {
+      console.error("Failed to parse cached data from localStorage", error);
+      // Clear potentially corrupted cache
+      localStorage.clear();
+    }
+  }, []); // The empty array [] ensures this runs only once on mount
+
+  // Fetch logic for Discover tab
+  const findMyMatches = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setDiscoverError("You must be logged in to find personalized matches.");
+      return;
+    }
+    setDiscoverLoading(true);
+    setDiscoverError(null);
+    setHasSearched(true); // Always set this to true on click
+
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/api/suggestions`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data && response.data.success) {
+        const users = response.data.data;
+        setSuggestedUsers(users);
+        // --- MODIFICATION 2: Save fetched data to localStorage ---
+        localStorage.setItem("cachedSuggestedUsers", JSON.stringify(users));
+        localStorage.setItem("hasSearched", "true");
+      } else {
+        throw new Error(
+          response.data.message || "Failed to fetch suggestions."
+        );
+      }
+    } catch (err) {
+      setDiscoverError(
+        err.response?.data?.message ||
+          err.message ||
+          "An unknown error occurred."
+      );
+    } finally {
+      setDiscoverLoading(false);
+    }
+  };
+
+  // Fetch logic for Swap Requests tab
+  const fetchSwapData = async () => {
+    // Only fetch if data is not already loaded (from cache or previous fetch)
+    if (swaps.length > 0) return;
+
+    const token = getAuthToken();
+    if (!token) {
+      setSwapsError("Please log in to see your swap requests.");
+      return;
+    }
+    setSwapsLoading(true);
+    setSwapsError(null);
+    try {
+      const [swapsRes, meRes] = await Promise.all([
+        axios.get("http://localhost:3000/api/swaps", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:3000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      if (swapsRes.data && swapsRes.data.success) {
+        const swapData = swapsRes.data.data;
+        const swapCount = swapsRes.data.count;
+        setSwaps(swapData);
+        setSwapRequestCount(swapCount);
+        // --- MODIFICATION 3: Save fetched swap data to localStorage ---
+        localStorage.setItem("cachedSwaps", JSON.stringify(swapData));
+        localStorage.setItem("swapRequestCount", swapCount.toString());
+      } else {
+        throw new Error("Failed to fetch swaps.");
+      }
+      if (meRes.data && meRes.data.success) {
+        const userData = meRes.data.data;
+        setCurrentUser(userData);
+        // --- MODIFICATION 4: Save current user data to localStorage ---
+        localStorage.setItem("cachedCurrentUser", JSON.stringify(userData));
+      } else {
+        throw new Error("Failed to identify current user.");
+      }
+    } catch (err) {
+      setSwapsError(err.message || "An error occurred fetching swap data.");
+    } finally {
+      setSwapsLoading(false);
+    }
+  };
+
+  // Effect to fetch swap data when switching to the tab if it's not already loaded
+  useEffect(() => {
+    if (activeTab === "Swap Requests") {
+        // Trigger fetch only if the data isn't already in the state
+        fetchSwapData();
+    }
+  }, [activeTab]);
 
   const renderContent = () => {
     switch (activeTab) {
       case "Discover":
-        return <DiscoverView />;
+        return (
+          <DiscoverView
+            suggestedUsers={suggestedUsers}
+            loading={discoverLoading}
+            error={discoverError}
+            hasSearched={hasSearched}
+            findMyMatches={findMyMatches}
+          />
+        );
       case "Swap Requests":
-        return <SwapRequestsView onUpdateCount={setSwapRequestCount} />;
+        return (
+          <SwapRequestsView
+            swaps={swaps}
+            setSwaps={setSwaps} // Pass down the setter to update state on accept/reject
+            currentUser={currentUser}
+            loading={swapsLoading}
+            error={swapsError}
+          />
+        );
       default:
-        return <DiscoverView />;
+        // Fallback to DiscoverView
+        return (
+          <DiscoverView
+            suggestedUsers={suggestedUsers}
+            loading={discoverLoading}
+            error={discoverError}
+            hasSearched={hasSearched}
+            findMyMatches={findMyMatches}
+          />
+        );
     }
   };
 
