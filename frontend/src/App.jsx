@@ -4,7 +4,7 @@ import {
   Routes,
 } from "react-router-dom";
 import UserProfile from "./pages/UserProfile";
-import HomeScreen from "./pages/HomeScreen";
+import AuthFrontend from "./pages/Auth";
 
 function App() {
   return (
@@ -12,7 +12,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/user-profile" element={<UserProfile />} />
-          <Route path="/home-screen" element={<HomeScreen />} />
+          <Route path="/auth" element={<AuthFrontend />} />
         </Routes>
       </BrowserRouter>
     </>
