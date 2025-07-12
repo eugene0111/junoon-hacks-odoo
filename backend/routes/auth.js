@@ -2,8 +2,29 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { User } = require('../db');
 const { protect } = require('../middleware/auth');
+const { spawn } = require('child_process');
+const path = require('path');
 
 const router = express.Router();
+
+const triggerProfileAnalysis = (userId) => {
+    const pythonScriptPath = path.join(__dirname, '../../..', 'backend', 'ai', 'profile-analyzer.py');
+
+    console.log(`[Node.js] Attempting to run script at: ${pythonScriptPath}`);
+    console.log(`[Node.js] Spawning profile analyzer for user: ${userId}`);
+
+    const pythonProcess = spawn('python', [pythonScriptPath, userId]);
+    
+    pythonProcess.stdout.on('data', (data) => {
+        console.log(`[Python Analyzer stdout]: ${data.toString()}`);
+    });
+    pythonProcess.stderr.on('data', (data) => {
+        console.error(`[Python Analyzer stderr]: ${data.toString()}`);
+    });
+    pythonProcess.on('close', (code) => {
+        console.log(`[Node.js] Python analyzer process exited with code ${code} for user ${userId}`);
+    });
+};
 
 router.post('/register', [
   body('firstName', 'First Name is required').not().isEmpty(),
@@ -45,6 +66,8 @@ router.post('/register', [
     });
 
     const token = user.getSignedJwtToken();
+
+    triggerProfileAnalysis(user._id.toString());
 
     res.status(201).json({
       success: true,

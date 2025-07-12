@@ -91,6 +91,20 @@ const UserSchema = new mongoose.Schema({
   banned: {
     type: String,
     default: ''
+  },
+  profileAnalysis: {
+    rating: {
+        type: String,
+        enum: ['Good', 'Moderate', 'Severe', 'Not Analyzed'],
+        default: 'Not Analyzed'
+    },
+    recommendation: {
+        type: String,
+        default: ''
+    },
+    lastAnalyzed: {
+        type: Date
+    }
   }
 });
 

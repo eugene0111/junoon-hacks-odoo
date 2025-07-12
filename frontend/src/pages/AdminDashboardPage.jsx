@@ -1,15 +1,18 @@
 import React, { useState, Fragment, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, BarChart2, Loader2, AlertTriangle, Menu, X, Search, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldX, Ban, Repeat, Send, Download, BarChart2, Loader2, AlertTriangle, Menu, X, Search, CheckCircle, Eye } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 
 // A helper to get the auth token, assuming it's in localStorage
 const getAuthToken = () => localStorage.getItem('token');
 
-const mockModerationItems = [
-  { id: 1, user: 'NewUser123', skill: 'Professional Cuddler', reason: 'Potentially inappropriate' },
-  { id: 2, user: 'SpamBot', skill: 'FREE MONEY CLICK HERE', reason: 'Obvious spam' },
+// Removed mockModerationItems as it's now dynamic
+
+const mockSwaps = [
+    {id: 'S1024', participants: ['Alex Doe', 'Marc Demo'], skill: 'React <> Python', status: 'Accepted', date: '2024-11-01'},
+    {id: 'S1023', participants: ['Chris Lee', 'Jane Smith'], skill: 'Design <> Cooking', status: 'Cancelled', date: '2024-10-28'},
+    {id: 'S1022', participants: ['Alex Doe', 'NewUser123'], skill: 'Photoshop <> Marketing', status: 'Pending', date: '2024-11-05'},
 ];
 
 const AdminDashboardPage = () => {
@@ -19,7 +22,11 @@ const AdminDashboardPage = () => {
     const [swaps, setSwaps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [moderationItems, setModerationItems] = useState(mockModerationItems);
+
+    // Filter users for the moderation queue based on their profile analysis
+    const moderationQueue = users.filter(user => 
+        user.profileAnalysis && (user.profileAnalysis.rating === 'Moderate' || user.profileAnalysis.rating === 'Severe')
+    );
 
     useEffect(() => {
         const fetchData = async () => {
@@ -34,6 +41,7 @@ const AdminDashboardPage = () => {
             };
 
             try {
+                // Fetching both users and swaps
                 const [usersRes, swapsRes] = await Promise.all([
                     axios.get('http://localhost:3000/api/users', config),
                     axios.get('http://localhost:3000/api/swaps', config)
@@ -66,6 +74,12 @@ const AdminDashboardPage = () => {
 
         fetchData();
     }, []);
+    
+    // Handler to update a user's status in the main user list
+    const updateUserInList = (userId, updates) => {
+        setUsers(users.map(u => (u._id === userId ? { ...u, ...updates } : u)));
+    };
+
 
     const renderView = () => {
         if (loading) {
@@ -75,22 +89,19 @@ const AdminDashboardPage = () => {
             return (
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg flex items-center">
                     <AlertTriangle className="mr-3" />
-                    <div>
-                        <p className="font-bold">Error</p>
-                        <p>{error}</p>
-                    </div>
+                    <div><p className="font-bold">Error</p><p>{error}</p></div>
                 </div>
             );
         }
 
         switch(activeView) {
-            case 'dashboard': return <DashboardView users={users} swaps={swaps} moderationItems={moderationItems} />;
+            case 'dashboard': return <DashboardView users={users} swaps={swaps} moderationQueue={moderationQueue} />;
             case 'users': return <UserManagementView users={users} setUsers={setUsers} />;
-            case 'moderation': return <ContentModerationView moderationItems={moderationItems} setModerationItems={setModerationItems} />;
+            case 'moderation': return <ContentModerationView moderationQueue={moderationQueue} onUserUpdate={updateUserInList} />;
             case 'swaps': return <SwapMonitoringView swaps={swaps} />;
             case 'announcements': return <AnnouncementsView />;
             case 'reports': return <ReportsView users={users} swaps={swaps} />;
-            default: return <DashboardView users={users} swaps={swaps} moderationItems={moderationItems} />;
+            default: return <DashboardView users={users} swaps={swaps} moderationQueue={moderationQueue} />;
         }
     };
     
@@ -170,11 +181,11 @@ const SidebarItem = ({ icon, label, view, activeView, onClick }) => (
     </button>
 );
 
-const DashboardView = ({ users, swaps, moderationItems }) => {
+const DashboardView = ({ users, swaps, moderationQueue }) => {
     const totalUsers = users.length;
     const bannedUsers = users.filter(user => user.status === 'Banned').length;
     const activeSwaps = swaps.filter(swap => swap.status === 'accepted' || swap.status === 'pending').length;
-    const pendingModeration = moderationItems.length;
+    const pendingModeration = moderationQueue.length;
 
     return (
         <div>
@@ -251,17 +262,9 @@ const UserManagementView = ({ users, setUsers }) => {
                                     </td>
                                     <td className="p-3 text-right">
                                         {user.status === 'Banned' ? (
-                                            <button 
-                                                onClick={() => toggleUserBanStatus(user._id, user.status)} 
-                                                className="bg-emerald-500 text-white px-3 py-1 rounded-lg hover:bg-emerald-600 flex items-center gap-1 float-right text-sm">
-                                                <CheckCircle size={14}/> Unban
-                                            </button>
+                                            <button onClick={() => toggleUserBanStatus(user._id, user.status)} className="bg-emerald-500 text-white px-3 py-1 rounded-lg hover:bg-emerald-600 flex items-center gap-1 float-right text-sm"><CheckCircle size={14}/> Unban</button>
                                         ) : (
-                                            <button 
-                                                onClick={() => toggleUserBanStatus(user._id, user.status)} 
-                                                className="bg-rose-500 text-white px-3 py-1 rounded-lg hover:bg-rose-600 flex items-center gap-1 float-right text-sm">
-                                                <Ban size={14}/> Ban
-                                            </button>
+                                            <button onClick={() => toggleUserBanStatus(user._id, user.status)} className="bg-rose-500 text-white px-3 py-1 rounded-lg hover:bg-rose-600 flex items-center gap-1 float-right text-sm"><Ban size={14}/> Ban</button>
                                         )}
                                     </td>
                                 </tr>
@@ -274,32 +277,77 @@ const UserManagementView = ({ users, setUsers }) => {
     );
 };
 
-const ContentModerationView = ({ moderationItems, setModerationItems }) => {
-    const handleAction = (itemId) => {
-        setModerationItems(moderationItems.filter(item => item.id !== itemId));
+const ContentModerationView = ({ moderationQueue, onUserUpdate }) => {
+    const getRatingClass = (rating) => {
+        if (rating === 'Severe') return 'bg-rose-100 text-rose-800';
+        if (rating === 'Moderate') return 'bg-amber-100 text-amber-800';
+        return 'bg-slate-100 text-slate-800';
+    };
+
+    const handleDismiss = (userId) => {
+        // Here you would typically make an API call to update the user's profile analysis status.
+        // For now, we'll just update the state locally via the parent handler.
+        console.log(`Dismissing flag for user ${userId}.`);
+        onUserUpdate(userId, { profileAnalysis: { rating: 'Good', recommendation: 'Flag dismissed by admin.' } });
+    };
+
+    const handleBan = async (userId) => {
+        if (window.confirm("Are you sure you want to ban this user? This action is permanent.")) {
+            const token = getAuthToken();
+            if (!token) {
+                alert("Authentication error. Please log in again.");
+                return;
+            }
+            try {
+                await axios.put(`http://localhost:3000/api/users/${userId}/ban`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                onUserUpdate(userId, { status: 'Banned', profileAnalysis: { rating: 'Good', recommendation: 'User banned by admin.' } });
+                alert("User has been banned.");
+            } catch (error) {
+                console.error("Failed to ban user:", error);
+                alert("Error: Could not ban user.");
+            }
+        }
     };
 
     return (
         <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Content Moderation Queue</h2>
-            <div className="space-y-4">
-                {moderationItems.length > 0 ? moderationItems.map(item => (
-                    <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <p className="font-bold text-slate-800">{item.skill}</p>
-                            <p className="text-sm text-slate-500 mt-1">Submitted by: <span className="font-semibold">{item.user}</span></p>
-                            <p className="text-sm text-slate-500">Reason: {item.reason}</p>
+             <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Content Moderation Queue</h2>
+             <div className="space-y-4">
+                {moderationQueue.length > 0 ? (
+                    moderationQueue.map(user => (
+                        <div key={user._id} className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-amber-500">
+                            <div>
+                                <div className="flex items-center gap-4">
+                                    <h3 className="font-bold text-slate-800 text-lg">{user.firstName} {user.lastName}</h3>
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRatingClass(user.profileAnalysis.rating)}`}>
+                                        {user.profileAnalysis.rating}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-slate-500 mt-1">Joined: <span className="font-semibold">{user.joined}</span></p>
+                                <p className="text-sm text-slate-600 mt-2">
+                                    <span className="font-semibold">Analyzer Recommendation:</span> {user.profileAnalysis.recommendation}
+                                </p>
+                            </div>
+                            <div className="flex space-x-2 w-full sm:w-auto shrink-0">
+                                <button onClick={() => handleDismiss(user._id)} className="flex-1 sm:flex-none bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 text-sm font-semibold flex items-center justify-center gap-2"><Eye size={16}/> Dismiss</button>
+                                <button onClick={() => handleBan(user._id)} className="flex-1 sm:flex-none bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 text-sm font-semibold flex items-center justify-center gap-2"><Ban size={16}/> Ban User</button>
+                            </div>
                         </div>
-                        <div className="flex space-x-2 w-full sm:w-auto">
-                            <button onClick={() => handleAction(item.id)} className="flex-1 sm:flex-none bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 text-sm font-semibold">Approve</button>
-                            <button onClick={() => handleAction(item.id)} className="flex-1 sm:flex-none bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 text-sm font-semibold">Reject</button>
-                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-10 bg-white rounded-lg shadow-sm">
+                        <CheckCircle className="mx-auto text-emerald-500 w-12 h-12" />
+                        <h3 className="mt-2 text-lg font-medium text-slate-900">Queue is Clear</h3>
+                        <p className="mt-1 text-sm text-slate-500">No user profiles are currently flagged for review.</p>
                     </div>
-                )) : <p className="text-center text-slate-500">The moderation queue is empty.</p>}
-            </div>
+                )}
+             </div>
         </div>
     );
 };
+
 
 const SwapMonitoringView = ({swaps}) => {
     const getStatusClass = (status) => {
