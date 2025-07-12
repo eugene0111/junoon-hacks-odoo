@@ -9,7 +9,7 @@ const { success } = require('zod');
 const router = express.Router();
 
 const triggerProfileAnalysis = (userId) => {
-    const pythonScriptPath = path.join(__dirname, '..', 'backend', 'ai', 'profile-analyzer.py');
+    const pythonScriptPath = path.join(__dirname, '..', 'ai', 'profile_analyzer.py');
 
     console.log(`[Node.js] Attempting to run script at: ${pythonScriptPath}`);
     console.log(`[Node.js] Spawning profile analyzer for user: ${userId}`);
