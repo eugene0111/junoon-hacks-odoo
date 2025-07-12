@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const postRoutes = require('./routes/posts');
 const swapRoutes = require('./routes/swaps');
+const suggestionRoutes = require('./routes/suggestion');
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/swaps', swapRoutes);
+app.use('/api/suggestions', suggestionRoutes);
 
 app.listen(3000);
 console.log(`Listening on port ${3000}`);
