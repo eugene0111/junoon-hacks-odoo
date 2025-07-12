@@ -114,6 +114,7 @@ const AuthFrontend = () => {
     console.log('Login data:', loginData);
     if (loginData.email === "admin@admin.com" && loginData.password === "admin") {
       navigate('/admin-dashboard');
+      return;
     }
     try {
         const response = await axios.post(`http://localhost:3000/api/auth/login`, loginData);
