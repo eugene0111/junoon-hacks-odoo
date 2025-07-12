@@ -4,7 +4,6 @@ const { User } = require('../db');
 const { protect } = require('../middleware/auth');
 const { spawn } = require('child_process');
 const path = require('path');
-const { success } = require('zod');
 
 const router = express.Router();
 
