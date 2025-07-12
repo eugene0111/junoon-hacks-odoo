@@ -1,9 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
-// Assuming JWT_SECRET is loaded from your .env file
-// const JWT_SECRET = process.env.JWT_SECRET;
+const { JWT_SECRET } = require('./config');
 
 mongoose.connect('mongodb+srv://eugenesam1105:YmqM9E8UpQQcsBup@cluster0.a6jb0eg.mongodb.net/')
     .then(() => { console.log('DB Connected') })
@@ -102,8 +100,7 @@ UserSchema.pre('save', async function(next) {
 });
 
 UserSchema.methods.getSignedJwtToken = function() {
-  // IMPORTANT: Ensure JWT_SECRET is loaded into your environment variables
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id: this._id }, JWT_SECRET);
 };
 
 UserSchema.methods.matchPassword = async function(enteredPassword) {
