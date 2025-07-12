@@ -5,7 +5,7 @@ const { protect } = require('../middleware/auth');
 
 router.get('/all', protect, async (req, res) => {
     try {
-        const swaps = await Swap.find({}) // The only change is removing the filter
+        const swaps = await Swap.find({})
             .populate('post', 'title skillOffered skillWanted')
             .populate('requester', 'firstName lastName profilePhoto')
             .populate('provider', 'firstName lastName profilePhoto')
@@ -339,9 +339,8 @@ router.post('/:id/rate', protect, async (req, res) => {
 
 router.post('/request', protect, async (req, res) => {
     const { providerId, mySkill, theirSkill, message } = req.body;
-    const requesterId = req.user.id; // from protect middleware
+    const requesterId = req.user.id;
 
-    // --- Validation ---
     if (!providerId || !mySkill || !theirSkill) {
         return res.status(400).json({ success: false, message: 'Missing required fields for swap request.'});
     }
@@ -350,7 +349,6 @@ router.post('/request', protect, async (req, res) => {
     }
 
     try {
-        // Check for an existing, similar pending request to prevent spam
         const existingSwap = await Swap.findOne({
             provider: providerId,
             requester: requesterId,
@@ -362,7 +360,6 @@ router.post('/request', protect, async (req, res) => {
             return res.status(400).json({ success: false, message: 'You have already made this exact pending request.'});
         }
 
-        // Create the new swap using the 'details' field we will add to the schema
         const swap = await Swap.create({
             requester: requesterId,
             provider: providerId,

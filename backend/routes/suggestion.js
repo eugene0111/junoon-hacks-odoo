@@ -6,7 +6,6 @@ const { User, Suggestion } = require('../db');
 
 const router = express.Router();
 
-// This function wraps the python script execution in a Promise
 const runMatcherAndGetIds = (userId) => {
     return new Promise((resolve, reject) => {
         const pythonScriptPath = path.join(__dirname, '..', 'ai', 'ai_matcher.py');
@@ -14,8 +13,8 @@ const runMatcherAndGetIds = (userId) => {
 
         const pythonProcess = spawn('python', [pythonScriptPath, userId]);
         
-        let output = ''; // Buffer to collect stdout data
-        let errorOutput = ''; // Buffer to collect stderr data
+        let output = '';
+        let errorOutput = '';
 
         pythonProcess.stdout.on('data', (data) => {
             output += data.toString();
@@ -25,7 +24,6 @@ const runMatcherAndGetIds = (userId) => {
             errorOutput += data.toString();
         });
         
-        // Handle spawn errors (e.g., command not found)
         pythonProcess.on('error', (error) => {
             console.error(`[Node.js] Failed to start subprocess for user ${userId}. Error: ${error.message}`);
             reject(new Error(`Failed to start the matching service.`));
@@ -40,7 +38,6 @@ const runMatcherAndGetIds = (userId) => {
             }
 
             try {
-                // Once the script is done, parse the collected output
                 const matchedUserIds = JSON.parse(output);
                 resolve(matchedUserIds);
             } catch (parseError) {
@@ -56,27 +53,23 @@ router.get('/', protect, async (req, res) => {
     try {
         const userId = req.user.id;
         
-        // Await the result from the python script
         const matchedUserIds = await runMatcherAndGetIds(userId);
 
-        // Update the suggestions in the database (can be done in the background without await if not critical for the response)
         await Suggestion.findOneAndUpdate(
             { requester: userId },
             { requester: userId, matches: matchedUserIds, updatedAt: Date.now() },
             { upsert: true, new: true } 
         );
         
-        // Fetch the full profiles for the matched user IDs
         const matchedProfiles = await User.find({
             '_id': { $in: matchedUserIds }
-        }).select('-password'); // Exclude password field from the result
+        }).select('-password'); 
 
-        // Send the array of matched profiles in the response
         res.status(200).json({
             success: true,
             message: `Found ${matchedProfiles.length} matches.`,
             count: matchedProfiles.length,
-            data: matchedProfiles // This is the array you wanted
+            data: matchedProfiles
         });
 
     } catch (error) {
