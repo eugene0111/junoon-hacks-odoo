@@ -4,6 +4,7 @@ import {
   Routes,
 } from "react-router-dom";
 import UserProfile from "./pages/UserProfile";
+import HomeScreen from "./pages/HomeScreen";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/home-screen" element={<HomeScreen />} />
         </Routes>
       </BrowserRouter>
     </>
